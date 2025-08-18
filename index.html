@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        @keyframes gradientBG {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(-45deg, #2d6cdf, #6a5acd, #20b2aa, #ff7f50);
+            background-size: 400% 400%;
+            animation: gradientBG 12s ease infinite;
+        }
+
+        /* WhatsApp-style Soft Rounded Glassmorphic Box */
+        .login-box {
+            background: rgba(255, 255, 255, 0.18);
+            padding: 65px;
+            width: 450px;
+            border-radius: 25px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+            backdrop-filter: blur(15px);
+            color: white;
+            transition: all 0.3s ease-in-out;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+            .login-box:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 15px 50px rgba(0,0,0,0.25);
+            }
+
+            .login-box h2 {
+                text-align: center;
+                margin-bottom: 20px;
+                font-weight: bold;
+                font-size: 35px;
+                letter-spacing: 1px;
+            }
+
+        .input-group {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+            .input-group input {
+                width: 100%;
+                padding: 18px 22px;
+                border: none;
+                border-radius: 20px;
+                outline: none;
+                font-size: 22px;
+                background: rgba(255,255,255,0.25);
+                color: white;
+                box-shadow: inset 0 2px 5px rgba(0,0,0,0.15);
+            }
+
+                .input-group input::placeholder {
+                    color: rgba(255,255,255,0.7);
+                }
+
+        /* Soft Rounded Green Button */
+        .btn {
+            width: 100%;
+            padding: 18px;
+            border: none;
+            border-radius: 20px;
+            background: linear-gradient(135deg, #28a745, #20c997);
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            color: white;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+            .btn:hover {
+                background: linear-gradient(135deg, #218838, #17a589);
+                box-shadow: 0 6px 14px rgba(0,0,0,0.25);
+            }
+
+        .error {
+            color: #ffcccc;
+            font-size: 16px;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        /* 📱 Mobile Responsive */
+        @media screen and (max-width: 480px) {
+            .login-box {
+                width: 90%;
+                padding: 20px;
+                border-radius: 20px;
+            }
+
+                .login-box h2 {
+                    font-size: 20px;
+                }
+
+            .input-group input {
+                font-size: 13px;
+                padding: 10px;
+            }
+
+            .btn {
+                font-size: 14px;
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="login-box">
+        <h2>Welcome Back</h2>
+        <div class="input-group">
+            <input type="text" id="username" placeholder="Username">
+        </div>
+        <div class="input-group">
+            <input type="password" id="password" placeholder="Password">
+        </div>
+        <button class="btn" onclick="login()">Login</button>
+        <div class="error" id="errorMsg"></div>
+    </div>
+
+    <script>
+        function login() {
+            let uname = document.getElementById("username").value.trim();
+            let pass = document.getElementById("password").value.trim();
+            let errorMsg = document.getElementById("errorMsg");
+            errorMsg.textContent = "";
+
+            if (!uname || !pass) {
+                errorMsg.textContent = "કૃપા કરીને યુઝરનેમ અને પાસવર્ડ નાખો.";
+                return false;
+            }
+
+            let users = JSON.parse(localStorage.getItem("users") || "[]");
+
+            if (!users.find(u => u.username === "admin")) {
+                users.push({ username: "admin", fullname: "Administrator", password: "admin" });
+                localStorage.setItem("users", JSON.stringify(users));
+            }
+
+            let user = users.find(u => u.username === uname && u.password === pass);
+
+            if (!user) {
+                errorMsg.textContent = "યૂઝર મળ્યો નહીં. ફરીથી લોગિન કરો.";
+                return false;
+            }
+
+            localStorage.setItem("loggedUser", JSON.stringify(user));
+
+            if (user.username === "admin") {
+                window.location.href = "admin.html";
+            } else {
+                window.location.href = "workentry.html";
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Work Entry Dashboard</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: #e5ddd5;
+            display: flex;
+            justify-content: center;
+            margin: 0;
+            padding: 0;
+        }
+
+        .main-container {
+            max-width: 1100px;
+            width: 100%;
+            padding: 10px;
+        }
+        /* WhatsApp-style card */
+        .card {
+            background: #fff;
+            border-radius: 20px;
+            padding: 20px;
+            margin: 10px 0;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-image: url('https://cdn-icons-png.flaticon.com/512/149/149071.png');
+            background-position: center;
+            background-size: cover;
+            border: 2px solid #25d366;
+        }
+
+
+        .card-header h2 {
+            margin: 0;
+            color: #075e54;
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+            .form-group label {
+                display: block;
+                font-weight: bold;
+                font-size: 14px;
+                margin-bottom: 5px;
+                color: #075e54;
+            }
+
+            .form-group input {
+                width: 100%;
+                padding: 10px 12px;
+                border: 1px solid #ccc;
+                border-radius: 15px;
+                outline: none;
+                font-size: 14px;
+            }
+
+                .form-group input:focus {
+                    border-color: #25d366;
+                    box-shadow: 0 0 5px rgba(37, 211, 102, 0.4);
+                }
+        /* Buttons */
+        button {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .dashboard-btn {
+            background: #25d366;
+            color: white;
+            margin: 8px;
+            font-weight: bold;
+        }
+
+            .dashboard-btn:hover {
+                background: #1eb054;
+            }
+
+        .logout-btn {
+            background: #ff4d4d;
+            color: white;
+        }
+
+        .btn-save {
+            background: #25d366;
+            color: white;
+        }
+
+        .btn-delete {
+            background: #ff4d4d;
+            color: white;
+        }
+
+        .btn-view {
+            background: #34b7f1;
+            color: white;
+        }
+        /* Table */
+        table {
+            border-collapse: collapse;
+            margin-top: 15px;
+            width: 100%;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            table-layout: fixed; /* 👈 fix column width */
+        }
+
+            table th, table td {
+                border: 1px solid #ccc;
+                padding: 8px;
+                text-align: center;
+                word-wrap: break-word; /* 👈 text wrap thashe */
+            }
+
+                /* Column widths */
+                table th:nth-child(2),
+                table td:nth-child(2) {
+                    width: 25%; /* Full Name column mota */
+                    text-align: left; /* 👈 naam left align */
+                }
+
+                table th:not(:nth-child(2)),
+                table td:not(:nth-child(2)) {
+                    width: 8%; /* baaki badha ochha */
+                }
+        /* Common input styling */
+        .salary-input, .workday-input {
+            width: 70px; /* 👈 nana width */
+            padding: 4px 6px;
+            font-size: 14px;
+            text-align: center;
+            border: 1px solid #999;
+            border-radius: 6px;
+        }
+
+        th {
+            background: #075e54;
+            color: white;
+            padding: 10px;
+        }
+
+        td {
+            padding: 8px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        tfoot th {
+            background: #25d366;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="main-container">
+
+
+        <!-- Dashboard -->
+        <div id="dashboard" class="section card" style="text-align: center;">
+            <h2>Dashboard</h2>
+            <button class="dashboard-btn" onclick="showSection('add-entry')">➕ Add Entry</button>
+            <button class="dashboard-btn" onclick="showEntries()">📄 View Entry</button>
+            <button class="dashboard-btn" onclick="showSection('update-profile')">🛠 Update Profile</button>
+            <button class="dashboard-btn" style="background:#34b7f1;" onclick="showSection('manage-salary')">💰 Manage Salary</button>
+            <button class="dashboard-btn logout-btn" onclick="logout()">🚪 Logout</button>
+        </div>
+
+        <!-- Add Entry -->
+        <div id="add-entry" class="section card" style="display:none;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h2>Add Work Entry</h2>
+                <button class="logout-btn" onclick="showSection('dashboard')">⬅ Back</button>
+            </div>
+            <div class="form-group">
+                <label>Name:</label>
+                <input type="text" id="name" readonly>
+                <label>Date:</label>
+                <input type="date" id="date" value="">
+            </div>
+            <div class="form-group"><label>ActivePart:</label><input type="number" id="active"></div>
+            <div class="form-group"><label>Marking:</label><input type="number" id="marking"></div>
+            <div class="form-group"><label>ReMarking:</label><input type="number" id="remarking"></div>
+            <div class="form-group"><label>OutParty:</label><input type="number" id="outparty"></div>
+            <div>
+                <button class="btn-save" onclick="saveEntry()">💾 Save Entry</button>
+            </div>
+        </div>
+
+
+        <!-- View Entry -->
+        <div id="view-entry" class="section card card-white" style="display:none;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h2>All Entries</h2>
+                <div>
+                    <button class="btn-delete" onclick="deleteAllEntries()">🗑 Delete All Entries</button>
+                    <button class="logout-btn" onclick="showSection('dashboard')">⬅ Back</button>
+                </div>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Date</th>
+                        <th>Active</th>
+                        <th>Marking</th>
+                        <th>ReMarking</th>
+                        <th>OutParty</th>
+                        <th>ActivePartSalary</th>
+                        <th>MarkingSalary</th>
+                        <th>ReMarkingSalary</th>
+                        <th>OutPartySalary</th>
+                        <th>TotalSalary</th>
+                    </tr>
+                </thead>
+                <tbody id="entries-body"></tbody>
+                <tfoot>
+                    <tr id="total-row">
+                        <th colspan="2">TOTAL</th>
+                        <th id="t-active">0</th>
+                        <th id="t-marking">0</th>
+                        <th id="t-remarking">0</th>
+                        <th id="t-outparty">0</th>
+                        <th id="t-activeSalary">0.00</th>
+                        <th id="t-markingSalary">0.00</th>
+                        <th id="t-remarkingSalary">0.00</th>
+                        <th id="t-outpartySalary">0.00</th>
+                        <th id="t-totalSalary">0.00</th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+
+        <!-- Update Profile -->
+        <div id="update-profile" class="section card card-white" style="display:none;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h2>Update Profile</h2>
+                <button class="logout-btn" onclick="showSection('dashboard')">⬅ Back</button>
+            </div>
+            <div class="form-group">
+                <label>User name:</label>
+                <input type="text" id="username">
+                <label>New Password:</label>
+                <input type="password" id="password">
+            </div>
+            <button class="update-btn" onclick="updateProfile()">🔒 Update Profile</button>
+        </div>
+        <!-- Manage Salary -->
+        <div id="manage-salary" class="section card" style="display:none;">
+            <h2>Manage Salary & Summary</h2>
+            <button class="logout-btn" onclick="showSection('dashboard')">⬅ Back</button>
+
+            <table id="salary-summary">
+                <thead>
+                    <tr>
+                        <th>SR.NO</th>
+                        <th>NAME (Full Name)</th>
+                        <th>SALARY (Total)</th>
+                        <th>WorkDay</th>
+                        <th>NetSalary</th>
+                        <th>Withdrw</th>
+                        <th>BankSalary</th>
+                        <th>Pay In Cash</th>
+                    </tr>
+                </thead>
+                <tbody id="salary-body"></tbody>
+            </table>
+
+            <!-- ✅ Withdraw History Box (inside Manage Salary only) -->
+            <div class="card" style="margin-top:20px;">
+                <h3 style="color:#075e54;">💳 Withdraw History</h3>
+                <table id="withdraw-history">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Date & Time</th>
+                            <th>Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody id="withdraw-body">
+                        <tr><td colspan="3" style="text-align:center; color:gray;">No withdraw history</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+
+    </div>
+
+    <script>
+        window.onload = function () {
+            let loggedUser = JSON.parse(localStorage.getItem('loggedUser') || '{}');
+
+            // admin user manage માં save થયેલ fullname field load કરો
+            if (loggedUser.fullname && loggedUser.fullname.trim() !== "") {
+                document.getElementById('name').value = loggedUser.fullname;
+            } else if (loggedUser.fullName && loggedUser.fullName.trim() !== "") {
+                // જો ક્યાંક fullName key થી save થયેલું હોય તો fallback
+                document.getElementById('name').value = loggedUser.fullName;
+            } else if (loggedUser.username) {
+                document.getElementById('name').value = loggedUser.username;
+            } else {
+                document.getElementById('name').value = "";
+            }
+            {
+                loadWithdrawHistory();
+            };
+        };
+
+        function logout() {
+            if (confirm("Do you really want to logout?")) {
+                localStorage.removeItem("loggedUser");
+                window.location.href = "index.html";
+            }
+        }
+        function showSection(id) {
+            document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
+            document.getElementById(id).style.display = 'block';
+            if (id === 'manage-salary') {
+                loadSalarySummary();
+            }
+        }
+
+
+        function saveEntry() {
+            let name = document.getElementById('name').value.trim();
+            let date = document.getElementById('date').value;
+
+            let activeInput = document.getElementById('active').value.trim();
+            let markingInput = document.getElementById('marking').value.trim();
+            let remarkingInput = document.getElementById('remarking').value.trim();
+            let outpartyInput = document.getElementById('outparty').value.trim();
+
+            // 1. બધા fields ખાલી છે
+            if (activeInput === '' && markingInput === '' && remarkingInput === '' && outpartyInput === '') {
+                alert("Please enter your pcs");
+                return;
+            }
+
+            let active = +activeInput || 0;
+            let marking = +markingInput || 0;
+            let remarking = +remarkingInput || 0;
+            let outparty = +outpartyInput || 0;
+
+            let rates = { active: 2.6, marking: 2.3, remarking: 3.0, outparty: 2.6 };
+            let activeSalary = active * rates.active;
+            let markingSalary = marking * rates.marking;
+            let remarkingSalary = remarking * rates.remarking;
+            let outpartySalary = outparty * rates.outparty;
+            let totalSalary = activeSalary + markingSalary + remarkingSalary + outpartySalary;
+
+            let entries = JSON.parse(localStorage.getItem('workEntries') || '[]');
+
+
+            // 2. Duplicate check (same name + date)
+            let existingIndex = entries.findIndex(e => e.date === date && e.name === name);
+            if (existingIndex !== -1) {
+                let confirmUpdate = confirm("આ તારીખની entry પહેલેથી save છે. શું entry સુધારવી છે?");
+                if (!confirmUpdate) {
+                    return; // save ન થાય
+                } else {
+                    entries.splice(existingIndex, 1); // જૂની entry delete
+                }
+            }
+
+            // 3. Save entry
+            let entry = {
+                name, date, active, marking, remarking, outparty,
+                activeSalary, markingSalary, remarkingSalary, outpartySalary, total: totalSalary
+            };
+
+            entries.push(entry);
+            localStorage.setItem('workEntries', JSON.stringify(entries));  // <-- FIX: "workEntries"
+
+
+            alert("✅ Entry Saved!");
+        }
+
+
+        function showEntries() {
+            showSection('view-entry');
+            let loggedUser = JSON.parse(localStorage.getItem('loggedUser') || '{}');
+            let entries = JSON.parse(localStorage.getItem('workEntries') || '[]');
+
+            // 🔑 Filter only current user's entries
+            let userName = loggedUser.fullname || loggedUser.fullName || loggedUser.username;
+            entries = entries.filter(e => e.name === userName);
+
+            let tbody = document.getElementById('entries-body');
+            tbody.innerHTML = '';
+            let total = {
+                active: 0, marking: 0, remarking: 0, outparty: 0,
+                activeSalary: 0, markingSalary: 0, remarkingSalary: 0, outpartySalary: 0, totalSalary: 0
+            };
+
+            entries.forEach((e, i) => {
+                tbody.innerHTML += `
+            <tr>
+                <td>${i + 1}</td>
+                <td>${e.date}</td>
+                <td>${e.active}</td>
+                <td>${e.marking}</td>
+                <td>${e.remarking}</td>
+                <td>${e.outparty}</td>
+                <td>${e.activeSalary.toFixed(2)}</td>
+                <td>${e.markingSalary.toFixed(2)}</td>
+                <td>${e.remarkingSalary.toFixed(2)}</td>
+                <td>${e.outpartySalary.toFixed(2)}</td>
+                <td>${e.total.toFixed(2)}</td>
+            </tr>
+        `;
+                total.active += e.active;
+                total.marking += e.marking;
+                total.remarking += e.remarking;
+                total.outparty += e.outparty;
+                total.activeSalary += e.activeSalary;
+                total.markingSalary += e.markingSalary;
+                total.remarkingSalary += e.remarkingSalary;
+                total.outpartySalary += e.outpartySalary;
+                total.totalSalary += e.total;
+            });
+
+            document.getElementById('t-active').textContent = total.active;
+            document.getElementById('t-marking').textContent = total.marking;
+            document.getElementById('t-remarking').textContent = total.remarking;
+            document.getElementById('t-outparty').textContent = total.outparty;
+            document.getElementById('t-activeSalary').textContent = total.activeSalary.toFixed(2);
+            document.getElementById('t-markingSalary').textContent = total.markingSalary.toFixed(2);
+            document.getElementById('t-remarkingSalary').textContent = total.remarkingSalary.toFixed(2);
+            document.getElementById('t-outpartySalary').textContent = total.outpartySalary.toFixed(2);
+            document.getElementById('t-totalSalary').textContent = total.totalSalary.toFixed(2);
+        }
+
+
+
+        function deleteAllEntries() {
+            if (confirm("❌ Delete all entries?")) {
+                localStorage.removeItem('workEntries');
+                showEntries();
+                alert("🗑 All entries deleted!");
+            }
+        }
+
+        function updateProfile() {
+            let newName = document.getElementById("newFullName").value.trim();
+            let newPassword = document.getElementById("newPassword").value.trim();
+            let currentUser = JSON.parse(localStorage.getItem("loggedUser") || "null");
+
+            if (!currentUser) {
+                alert("યૂઝર મળ્યો નહીં.");
+                return;
+            }
+
+            if (!newName || !newPassword) {
+                alert("નવું નામ અને પાસવર્ડ નાખો.");
+                return;
+            }
+
+            let users = JSON.parse(localStorage.getItem("users") || "[]");
+
+            // old username match
+            let index = users.findIndex(u => u.username === currentUser.username);
+            if (index !== -1) {
+                users[index].fullname = newName;
+                users[index].password = newPassword;
+
+                // update logged user too
+                localStorage.setItem("loggedUser", JSON.stringify(users[index]));
+                localStorage.setItem("users", JSON.stringify(users));
+
+                document.getElementById("empName").value = newName;
+
+                alert("✅ Profile successfully updated!");
+            } else {
+                alert("યૂઝર અપડેટ થયો નહિ.");
+            }
+        }
+        function loadSalarySummary() {
+            let loggedUser = JSON.parse(localStorage.getItem('loggedUser') || '{}');
+            let userName = loggedUser.fullname || loggedUser.fullName || loggedUser.username;
+
+            let entries = JSON.parse(localStorage.getItem('workEntries') || '[]');
+            entries = entries.filter(e => e.name === userName);  // 🔑 only current user
+
+            let payments = JSON.parse(localStorage.getItem('payments') || '{}');
+            let grouped = {};
+
+            entries.forEach(e => {
+                if (!grouped[e.name]) grouped[e.name] = { totalSalary: 0 };
+                grouped[e.name].totalSalary += e.total;
+            });
+
+            let tbody = document.getElementById('salary-body');
+            tbody.innerHTML = '';
+            let sr = 1;
+
+            Object.keys(grouped).forEach(name => {
+                let g = grouped[name];
+                let salaryPerDay = g.totalSalary / 26;
+
+                let pay = payments[name] || { workDays: 0, withdrw: 0, bank: 0 };
+                let netSalary = salaryPerDay * (pay.workDays || 0);
+                let payInCash = netSalary - (pay.withdrw || 0) - (pay.bank || 0);
+
+                tbody.innerHTML += `
+<tr data-name="${name}">
+    <td>${sr++}</td>
+    <td>${name}</td>
+    <td>${g.totalSalary.toFixed(2)}</td>
+    <td><input type="number" class="workday-input" value="${pay.workDays}" readonly></td>
+    <td class="net-salary">${netSalary.toFixed(2)}</td>
+    <td><input type="number" class="salary-input" value="${pay.withdrw}" readonly></td>
+    <td><input type="number" class="salary-input" value="${pay.bank}" readonly></td>
+    <td class="cash">${payInCash.toFixed(2)}</td>
+</tr>`;
+            });
+        }
+
+
+
+        function updateBaki(input) {
+            let row = input.closest('tr');
+            let name = row.dataset.name;
+            let totalSalary = parseFloat(row.cells[2].textContent) || 0;
+            let salaryPerDay = totalSalary / 26;
+
+            let workDays = parseFloat(row.cells[3].querySelector('input').value) || 0;
+            let withdrw = parseFloat(row.cells[5].querySelector('input').value) || 0;
+            let bank = parseFloat(row.cells[6].querySelector('input').value) || 0;
+
+            let netSalary = salaryPerDay * workDays;
+            row.querySelector('.net-salary').textContent = netSalary.toFixed(2);
+
+            // ✅ Minus allowed
+            let payInCash = netSalary - withdrw - bank;
+            row.querySelector('.cash').textContent = payInCash.toFixed(2);
+
+            let payments = JSON.parse(localStorage.getItem('payments') || '{}');
+            if (!payments[name]) payments[name] = { workDays: 0, withdrw: 0, bank: 0, history: [] };
+
+            // old withdraw value
+            let oldWithdrw = payments[name].withdrw || 0;
+
+            // ✅ If withdraw amount increased → add history with Date/Time
+            if (withdrw > oldWithdrw) {
+                let newAmount = withdrw - oldWithdrw;
+                payments[name].history = payments[name].history || [];
+                payments[name].history.push({
+                    date: new Date().toLocaleString(), // ⏰ date+time
+                    amount: newAmount
+                });
+            }
+
+            payments[name].workDays = workDays;
+            payments[name].withdrw = withdrw;
+            payments[name].bank = bank;
+
+            localStorage.setItem('payments', JSON.stringify(payments));
+
+            // Refresh withdraw history (only for this user)
+            loadWithdrawHistory(name);
+        }
+
+
+
+        function loadWithdrawHistory(userName) {
+            let historyTableBody = document.getElementById("withdraw-body");
+            historyTableBody.innerHTML = "";
+
+            let payments = JSON.parse(localStorage.getItem('payments') || '{}');
+            let sr = 1;
+
+            if (userName && payments[userName] && payments[userName].history) {
+                payments[userName].history.forEach(h => {
+                    let row = document.createElement("tr");
+                    row.innerHTML = `
+                <td>${sr++}</td>
+                <td>${h.date}</td>
+                <td>${h.amount.toFixed(2)}</td>
+            `;
+                    historyTableBody.appendChild(row);
+                });
+            }
+
+            if (historyTableBody.innerHTML === "") {
+                historyTableBody.innerHTML = `<tr><td colspan="3" style="text-align:center;color:gray;">No Withdrawals Yet</td></tr>`;
+            }
+        }
+
+
+
+        function loadWithdrawDetails() {
+            let tableBody = document.getElementById("withdrawDetailsBody");
+            tableBody.innerHTML = "";
+
+            db.each(`SELECT EmployeeName, WorkDate, WithdrawAmount 
+             FROM WorkEntries 
+             WHERE WithdrawAmount IS NOT NULL`, [], (err, row) => {
+                if (err) {
+                    console.error(err);
+                    return;
+                }
+
+                let tr = document.createElement("tr");
+                tr.innerHTML = `
+            <td>${row.EmployeeName}</td>
+            <td>${row.WorkDate}</td>
+            <td>${row.WithdrawAmount || 0}</td>
+        `;
+                tableBody.appendChild(tr);
+            });
+        }
+
+
+
+
+
+
+        // Set today's date in Add Entry form
+        document.getElementById('date').value = new Date().toISOString().split('T')[0];
+    </script>
+
+</body>
+</html>

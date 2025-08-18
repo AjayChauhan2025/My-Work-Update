@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Panel</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.19.3/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #e5ddd5;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            background: #fff;
+            width: 95%;
+            max-width: 1100px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            text-align: center;
+            font-size: 28px;
+            font-weight: bold;
+            padding: 20px;
+            background: #eae2dc;
+            border-radius: 10px 10px 0 0;
+        }
+
+        .tab-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            background: #2d6cdf;
+            padding: 10px;
+            flex-wrap: wrap;
+        }
+
+            .tab-buttons button {
+                padding: 10px 16px;
+                border: none;
+                cursor: pointer;
+                background: #4a82e3;
+                color: white;
+                border-radius: 6px;
+                font-weight: bold;
+                transition: 0.2s;
+                font-size: 14px;
+            }
+
+                .tab-buttons button.active {
+                    background: #1f4e9b;
+                }
+
+        .logout-btn {
+            background: #dc3545 !important;
+        }
+
+            .logout-btn:hover {
+                background: #c82333 !important;
+            }
+
+        .card {
+            background: white;
+            padding: 20px;
+            margin: 20px;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        input, select {
+            padding: 8px;
+            margin: 6px 4px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            min-width: 600px;
+        }
+
+        th, td {
+            border: 1px solid #ccc;
+            padding: 6px;
+            text-align: center;
+        }
+
+        /* 🌟 Default table header (blue) */
+        th {
+            background: #2d6cdf;
+            color: white;
+        }
+
+        /* 🌟 Special styling for Salary Table */
+        #salary-summary thead th {
+            background: #005b55; /* Dark Green */
+            color: white;
+            font-weight: bold;
+            padding: 10px;
+        }
+
+        /* Rounded header for salary table */
+        #salary-summary thead tr:first-child th:first-child {
+            border-top-left-radius: 8px;
+        }
+
+        #salary-summary thead tr:first-child th:last-child {
+            border-top-right-radius: 8px;
+        }
+
+        tbody tr:nth-child(odd) {
+            background: #fff;
+        }
+
+        tbody tr:nth-child(even) {
+            background: #f9faff;
+        }
+
+        tfoot tr {
+            font-weight: bold;
+            background: #ffe599;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        .btn {
+            padding: 6px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 2px;
+        }
+
+        .btn-green {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-blue {
+            background: #007bff;
+            color: white;
+        }
+
+        .btn-red {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-excel {
+            background: #1d6f42;
+            color: white;
+        }
+
+        .btn-pdf {
+            background: #b31b1b;
+            color: white;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        .section {
+            display: none;
+        }
+
+            .section.active {
+                display: block;
+            }
+
+        /* 🌟 Inputs inside salary table */
+        #salary-summary input {
+            width: 80px;
+            padding: 4px;
+            text-align: center;
+            border: 1px solid #bbb;
+            border-radius: 4px;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">Dashboard</div>
+
+        <div class="tab-buttons">
+            <button id="btnUserManage" class="active" onclick="showSection('userManage')">👤 User</button>
+            <button id="btnReport" onclick="showSection('employeeReport')">📊 Report</button>
+            <button id="btnSalary" onclick="showSection('salaryManage')">💰 Salary</button>
+            <button class="logout-btn" onclick="logout()">🚪 Logout</button>
+        </div>
+
+        <!-- USER MANAGE -->
+        <div id="userManage" class="section active">
+            <div class="card">
+                <h2>Add / Edit User</h2>
+                <input type="text" id="username" placeholder="Username (unique)">
+                <input type="text" id="fullname" placeholder="Full Name">
+                <input type="password" id="password" placeholder="Password">
+                <button class="btn btn-green" onclick="addOrUpdateUser()">💾 Save User</button>
+            </div>
+            <div class="card table-container">
+                <h2>Users List</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Full Name</th>
+                            <th>Password</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="userTable"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- EMPLOYEE REPORT -->
+        <div id="employeeReport" class="section">
+
+            <!-- Filter -->
+            <div class="card">
+                <h2>Filter</h2>
+                <select id="filterUserDropdown">
+                    <option value="">-- Select User --</option>
+                </select>
+                <input type="date" id="filterFrom">
+                <input type="date" id="filterTo">
+                <button class="btn btn-blue" onclick="loadReport()">🔍 Search</button>
+                <button class="btn btn-excel" onclick="exportExcel()">⬇ Export Excel</button>
+                <button class="btn btn-pdf" onclick="exportPDF()">⬇ Export PDF</button>
+            </div>
+
+
+            <!-- Summary -->
+            <div class="card">
+                <h2>Summary</h2>
+                <div class="summary">
+                    <div id="todaySalary">Today Salary: ₹0.00</div>
+                    <div id="monthlyAvgPieces">Monthly Avg Pieces: 0</div>
+                    <div id="monthlyAvgSalary">Monthly Avg Salary: ₹0.00</div>
+                    <div id="totalSalary">Total Salary: ₹0.00</div>
+                </div>
+            </div>
+
+            <!-- Detailed Entries Table -->
+            <div class="card" style="max-height:400px; overflow:auto;">
+                <h2>Entries</h2>
+                <table id="detailTable">
+                    <thead>
+                        <tr>
+                            <th>name</th>
+                            <th>Date</th>
+                            <th>Active</th>
+                            <th>Marking</th>
+                            <th>ReMarking</th>
+                            <th>OutParty</th>
+                            <th>ActivePartSalary</th>
+                            <th>MarkingSalary</th>
+                            <th>ReMarkingSalary</th>
+                            <th>OutPartySalary</th>
+                            <th>TotalSalary</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="2">TOTAL</td>
+                            <td id="tAP">0</td>
+                            <td id="tMK">0</td>
+                            <td id="tRM">0</td>
+                            <td id="tOP">0</td>
+                            <td id="tAPSal">₹0.00</td>
+                            <td id="tMKSal">₹0.00</td>
+                            <td id="tRMSal">₹0.00</td>
+                            <td id="tOPSal">₹0.00</td>
+                            <td id="tTotalSal">₹0.00</td>
+
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+            <!-- SALARY SECTION -->
+            <div id="salaryManage" class="section">
+                <div class="card">
+                    <h2>Manage Salary & Summary</h2>
+                    <button class="logout-btn" onclick="showSection('dashboard')">⬅ Back</button>
+                    <table id="salary-summary">
+                        <thead>
+                            <tr>
+                                <th>SR.NO</th>
+                                <th>NAME (Full Name)</th>
+                                <th>SALARY (Total)</th>
+                                <th>WorkDay</th>
+                                <th>NetSalary</th>
+                                <th>Withdrw</th>
+                                <th>BankSalary</th>
+                                <th>Pay In Cash</th>
+                                <th>BAKI</th>   <!-- NEW -->
+                            </tr>
+                        </thead>
+
+                        <tbody id="salary-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            let users = JSON.parse(localStorage.getItem("users") || "[]");
+            let workEntries = JSON.parse(localStorage.getItem("workEntries") || "[]");
+
+            /* ---- Section Switch ---- */
+            function logout() {
+                localStorage.removeItem("loggedUser");
+                window.location.href = "index.html";
+            }
+            function showSection(id) {
+                document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+                document.getElementById(id).classList.add("active");
+                document.querySelectorAll(".tab-buttons button").forEach(b => b.classList.remove("active"));
+                document.getElementById(
+                    id === "userManage" ? "btnUserManage" :
+                        id === "employeeReport" ? "btnReport" : "btnSalary"
+                ).classList.add("active");
+
+                if (id === "userManage") loadUsers();
+                if (id === "salaryManage") loadSalarySummary();
+            }
+
+            /* ---- Salary Summary ---- */
+            function loadSalarySummary() {
+                let entries = JSON.parse(localStorage.getItem('workEntries') || '[]');
+                let payments = JSON.parse(localStorage.getItem('payments') || '{}');
+                let grouped = {};
+
+                entries.forEach(e => {
+                    if (!grouped[e.name]) grouped[e.name] = { totalSalary: 0 };
+                    grouped[e.name].totalSalary += e.total || 0;
+                });
+
+                let tbody = document.getElementById('salary-body');
+                tbody.innerHTML = '';
+                let sr = 1;
+
+                Object.keys(grouped).forEach(name => {
+                    let g = grouped[name];
+                    let salaryPerDay = g.totalSalary / 26;
+                    let pay = payments[name] || { workDays: 0, withdrw: 0, bank: 0 };
+                    let netSalary = salaryPerDay * (pay.workDays || 0);
+                    let payInCash = netSalary - (pay.withdrw || 0) - (pay.bank || 0);
+                    let baki = g.totalSalary - (pay.withdrw || 0) - (pay.bank || 0) - payInCash;
+
+                    tbody.innerHTML += `
+        <tr data-name="${name}">
+            <td>${sr++}</td>
+            <td>${name}</td>
+            <td>${g.totalSalary.toFixed(2)}</td>
+            <td><input type="number" value="${pay.workDays}" oninput="updateBaki(this)"></td>
+            <td class="net-salary">${netSalary.toFixed(2)}</td>
+            <td><input type="number" value="${pay.withdrw}" oninput="updateBaki(this)"></td>
+            <td><input type="number" value="${pay.bank}" oninput="updateBaki(this)"></td>
+            <td class="cash">${payInCash.toFixed(2)}</td>
+            <td class="baki">${baki.toFixed(2)}</td>
+        </tr>`;
+                });
+            }
+
+            function updateBaki(input) {
+                let row = input.closest('tr');
+                let name = row.dataset.name;
+                let totalSalary = parseFloat(row.cells[2].textContent) || 0;
+                let salaryPerDay = totalSalary / 26;
+
+                let workDays = parseFloat(row.cells[3].querySelector('input').value) || 0;
+                let withdrw = parseFloat(row.cells[5].querySelector('input').value) || 0;
+                let bank = parseFloat(row.cells[6].querySelector('input').value) || 0;
+
+                let netSalary = salaryPerDay * workDays;
+                row.querySelector('.net-salary').textContent = netSalary.toFixed(2);
+                let payInCash = netSalary - withdrw - bank;
+                row.querySelector('.cash').textContent = payInCash.toFixed(2);
+
+                let baki = totalSalary - withdrw - bank - payInCash;
+                row.querySelector('.baki').textContent = baki.toFixed(2);
+
+                let payments = JSON.parse(localStorage.getItem('payments') || '{}');
+                payments[name] = { workDays, withdrw, bank };
+                localStorage.setItem('payments', JSON.stringify(payments));
+            }
+
+
+            /* ---- User Manage ---- */
+            function addOrUpdateUser() {
+                let uname = document.getElementById("username").value.trim();
+                let fname = document.getElementById("fullname").value.trim();
+                let pass = document.getElementById("password").value.trim();
+                if (!uname || !fname || !pass) { alert("Please fill all fields"); return; }
+                let idx = users.findIndex(u => u.username === uname);
+                if (idx >= 0) { users[idx].fullname = fname; users[idx].password = pass; }
+                else { users.push({ username: uname, fullname: fname, password: pass }); }
+                localStorage.setItem("users", JSON.stringify(users));
+                loadUsers();
+                document.getElementById("username").value = "";
+                document.getElementById("fullname").value = "";
+                document.getElementById("password").value = "";
+            }
+            function loadUsers() {
+                users = JSON.parse(localStorage.getItem("users") || "[]");
+                let tbody = document.getElementById("userTable");
+                tbody.innerHTML = "";
+                users.forEach(u => {
+                    tbody.innerHTML += `<tr>
+                        <td>${u.username}</td>
+                        <td>${u.fullname}</td>
+                        <td>${u.password}</td>
+                        <td>
+                            <button class="btn btn-blue" onclick="editUser('${u.username}')">✏</button>
+                            <button class="btn btn-red" onclick="deleteUser('${u.username}')">🗑</button>
+                        </td>
+                    </tr>`;
+                });
+            }
+            function editUser(username) {
+                let u = users.find(x => x.username === username);
+                if (u) {
+                    document.getElementById("username").value = u.username;
+                    document.getElementById("fullname").value = u.fullname;
+                    document.getElementById("password").value = u.password;
+                }
+            }
+            function deleteUser(username) {
+                if (confirm("Delete user?")) {
+                    users = users.filter(u => u.username !== username);
+                    localStorage.setItem("users", JSON.stringify(users));
+                    loadUsers();
+                }
+            }
+            function loadReport() {
+                let entries = JSON.parse(localStorage.getItem("workEntries") || "[]");
+
+                // Filter values
+                let selectedUser = document.getElementById("filterUserDropdown").value;
+                let from = document.getElementById("filterFrom").value;
+                let to = document.getElementById("filterTo").value;
+
+                // Filter logic
+                let filtered = entries.filter(e => {
+                    let ok = true;
+                    if (selectedUser && e.name !== selectedUser) ok = false;  // ✅ match fullname
+                    if (from && new Date(e.date) < new Date(from)) ok = false;
+                    if (to && new Date(e.date) > new Date(to)) ok = false;
+                    return ok;
+                })
+
+                // Reset table
+                let tbody = document.querySelector("#detailTable tbody");
+                tbody.innerHTML = "";
+
+                let tAP = 0, tMK = 0, tRM = 0, tOP = 0, tAPSal = 0, tMKSal = 0, tRMSal = 0, tOPSal = 0, tTotal = 0;
+
+                filtered.forEach((e, i) => {
+                    tbody.innerHTML += `
+            <tr>
+                <td>${e.name}</td>
+                <td>${e.date}</td>
+                <td>${e.active || 0}</td>
+                <td>${e.marking || 0}</td>
+                <td>${e.remarking || 0}</td>
+                <td>${e.outparty || 0}</td>
+                <td>${e.activeSalary?.toFixed(2) || 0}</td>
+                <td>${e.markingSalary?.toFixed(2) || 0}</td>
+                <td>${e.remarkingSalary?.toFixed(2) || 0}</td>
+                <td>${e.outpartySalary?.toFixed(2) || 0}</td>
+                <td>${e.total?.toFixed(2) || 0}</td>
+                <td>📝</td>
+            </tr>`;
+
+                    // Totals
+                    tAP += e.active || 0;
+                    tMK += e.marking || 0;
+                    tRM += e.remarking || 0;
+                    tOP += e.outparty || 0;
+                    tAPSal += e.activeSalary || 0;
+                    tMKSal += e.markingSalary || 0;
+                    tRMSal += e.remarkingSalary || 0;
+                    tOPSal += e.outpartySalary || 0;
+                    tTotal += e.total || 0;
+                });
+
+                // Fill footer totals
+                document.getElementById("tAP").textContent = tAP;
+                document.getElementById("tMK").textContent = tMK;
+                document.getElementById("tRM").textContent = tRM;
+                document.getElementById("tOP").textContent = tOP;
+                document.getElementById("tAPSal").textContent = "₹" + tAPSal.toFixed(2);
+                document.getElementById("tMKSal").textContent = "₹" + tMKSal.toFixed(2);
+                document.getElementById("tRMSal").textContent = "₹" + tRMSal.toFixed(2);
+                document.getElementById("tOPSal").textContent = "₹" + tOPSal.toFixed(2);
+                document.getElementById("tTotalSal").textContent = "₹" + tTotal.toFixed(2);
+
+                // Summary top box
+                if (filtered.length > 0) {
+                    document.getElementById("todaySalary").textContent = "Today Salary: ₹" + (filtered[filtered.length - 1].total || 0).toFixed(2);
+                    document.getElementById("monthlyAvgPieces").textContent = "Monthly Avg Pieces: " + Math.round((tAP + tMK + tRM + tOP) / filtered.length);
+                    document.getElementById("monthlyAvgSalary").textContent = "Monthly Avg Salary: ₹" + (tTotal / filtered.length).toFixed(2);
+                    document.getElementById("totalSalary").textContent = "Total Salary: ₹" + tTotal.toFixed(2);
+                } else {
+                    document.getElementById("todaySalary").textContent = "Today Salary: ₹0.00";
+                    document.getElementById("monthlyAvgPieces").textContent = "Monthly Avg Pieces: 0";
+                    document.getElementById("monthlyAvgSalary").textContent = "Monthly Avg Salary: ₹0.00";
+                    document.getElementById("totalSalary").textContent = "Total Salary: ₹0.00";
+                }
+            }
+
+            // Populate filter user dropdown
+            function fillUserDropdown() {
+                let dropdown = document.getElementById("filterUserDropdown");
+                dropdown.innerHTML = '<option value="">-- Select User --</option>';
+                users.forEach(u => {
+                    let opt = document.createElement("option");
+                    opt.value = u.fullname || u.username;   // ✅ fullname save karo
+                    opt.textContent = u.fullname || u.username;
+                    dropdown.appendChild(opt);
+                });
+            }
+
+            fillUserDropdown();
+
+            /* ---- Report Export ---- */
+            function exportExcel() {
+                let table = document.getElementById("detailTable");
+                let wb = XLSX.utils.table_to_book(table, { sheet: "Report" });
+                XLSX.writeFile(wb, "Employee_Report.xlsx");
+            }
+            function exportPDF() {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                doc.text("Employee Report", 14, 10);
+                doc.autoTable({ html: '#detailTable', startY: 20 });
+                doc.save('Employee_Report.pdf');
+            }
+
+            loadUsers();
+        </script>
+</body>
+</html>
