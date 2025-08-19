@@ -6,8 +6,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.19.3/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -324,260 +322,294 @@
             </div>
         </div>
 
-        <script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+        import {
+            getFirestore, collection, getDocs, setDoc, doc, deleteDoc, getDoc, query, where
+        } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 
-            const firebaseConfig = {
-                apiKey: "AIzaSyBcevmTwJ7T6xid6s-4csUm4UiFKUn7q_Q",
-                authDomain: "my-work-update.firebaseapp.com",
-                projectId: "my-work-update",
-                storageBucket: "my-work-update.firebasestorage.app",
-                messagingSenderId: "521466697898",
-                appId: "1:521466697898:web:071cb3372c2d686ead98d3"
-            };
-            let users = JSON.parse(localStorage.getItem("users") || "[]");
-            let workEntries = JSON.parse(localStorage.getItem("workEntries") || "[]");
 
-            /* ---- Section Switch ---- */
-            function logout() {
-                localStorage.removeItem("loggedUser");
-                window.location.href = "index.html";
+        const firebaseConfig = {
+            apiKey: "AIzaSyBcevmTwJ7T6xid6s-4csUm4UiFKUn7q_Q",
+            authDomain: "my-work-update.firebaseapp.com",
+            projectId: "my-work-update",
+            storageBucket: "my-work-update.firebasestorage.app",
+            messagingSenderId: "521466697898",
+            appId: "1:521466697898:web:071cb3372c2d686ead98d3"
+        };
+
+        // ✅ Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let users = JSON.parse(localStorage.getItem("users") || "[]");
+        let workEntries = JSON.parse(localStorage.getItem("workEntries") || "[]");
+
+        /* ---- Section Switch ---- */
+        function logout() {
+            localStorage.removeItem("loggedUser");
+            window.location.href = "index.html";
+        }
+        function showSection(id) {
+            document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+            document.getElementById(id).classList.add("active");
+            document.querySelectorAll(".tab-buttons button").forEach(b => b.classList.remove("active"));
+            document.getElementById(
+                id === "userManage" ? "btnUserManage" :
+                    id === "employeeReport" ? "btnReport" : "btnSalary"
+            ).classList.add("active");
+
+            if (id === "userManage") loadUsers();
+            if (id === "salaryManage") loadSalarySummary();
+        }
+
+        /* ---- Salary Summary ---- */
+        async function loadSalarySummary() {
+            let tbody = document.getElementById('salary-body');
+            tbody.innerHTML = '';
+
+            const snapshot = await getDocs(collection(db, "workEntries"));
+            let grouped = {};
+
+            snapshot.forEach(docSnap => {
+                let e = docSnap.data();
+                if (!grouped[e.name]) grouped[e.name] = { totalSalary: 0 };
+                grouped[e.name].totalSalary += e.total || 0;
+            });
+
+            let sr = 1;
+            Object.keys(grouped).forEach(name => {
+                let g = grouped[name];
+
+                tbody.innerHTML += `
+        <tr data-name="${name}">
+            <td>${sr++}</td>
+            <td>${name}</td>
+            <td>${g.totalSalary.toFixed(2)}</td>
+            <td><input type="number" value="0" oninput="updateBaki(this)"></td>
+            <td class="net-salary">0.00</td>
+            <td><input type="number" value="0" oninput="updateBaki(this)"></td>
+            <td><input type="number" value="0" oninput="updateBaki(this)"></td>
+            <td class="cash">0.00</td>
+            <td class="baki">${g.totalSalary.toFixed(2)}</td>
+        </tr>`;
+            });
+        }
+
+
+
+        function updateBaki(input) {
+            let row = input.closest('tr');
+            let name = row.dataset.name;
+            let totalSalary = parseFloat(row.cells[2].textContent) || 0;
+            let salaryPerDay = totalSalary / 26;
+
+            let workDays = parseFloat(row.cells[3].querySelector('input').value) || 0;
+            let withdrw = parseFloat(row.cells[5].querySelector('input').value) || 0;
+            let bank = parseFloat(row.cells[6].querySelector('input').value) || 0;
+
+            let netSalary = salaryPerDay * workDays;
+            row.querySelector('.net-salary').textContent = netSalary.toFixed(2);
+            let payInCash = netSalary - withdrw - bank;
+            row.querySelector('.cash').textContent = payInCash.toFixed(2);
+
+            let baki = totalSalary - withdrw - bank - payInCash;
+            row.querySelector('.baki').textContent = baki.toFixed(2);
+
+            let payments = JSON.parse(localStorage.getItem('payments') || '{}');
+            payments[name] = { workDays, withdrw, bank };
+            localStorage.setItem('payments', JSON.stringify(payments));
+        }
+
+
+        /* ---- User Manage ---- */
+        async function addOrUpdateUser() {
+            let uname = document.getElementById("username").value.trim();
+            let fname = document.getElementById("fullname").value.trim();
+            let pass = document.getElementById("password").value.trim();
+
+            if (!uname || !fname || !pass) {
+                alert("Please fill all fields");
+                return;
             }
-            function showSection(id) {
-                document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
-                document.getElementById(id).classList.add("active");
-                document.querySelectorAll(".tab-buttons button").forEach(b => b.classList.remove("active"));
-                document.getElementById(
-                    id === "userManage" ? "btnUserManage" :
-                        id === "employeeReport" ? "btnReport" : "btnSalary"
-                ).classList.add("active");
 
-                if (id === "userManage") loadUsers();
-                if (id === "salaryManage") loadSalarySummary();
-            }
-
-            /* ---- Salary Summary ---- */
-            function loadSalarySummary() {
-                let tbody = document.getElementById('salary-body');
-                tbody.innerHTML = '';
-
-                db.collection("workEntries").get().then(snapshot => {
-                    let grouped = {};
-                    snapshot.forEach(doc => {
-                        let e = doc.data();
-                        if (!grouped[e.name]) grouped[e.name] = { totalSalary: 0 };
-                        grouped[e.name].totalSalary += e.total || 0;
-                    });
-
-                    let sr = 1;
-                    Object.keys(grouped).forEach(name => {
-                        let g = grouped[name];
-                        let salaryPerDay = g.totalSalary / 26;
-
-                        tbody.innerHTML += `
-                <tr>
-                    <td>${sr++}</td>
-                    <td>${name}</td>
-                    <td>${g.totalSalary.toFixed(2)}</td>
-                    <td><input type="number" value="0" oninput="updateBaki(this)"></td>
-                    <td class="net-salary">0.00</td>
-                    <td><input type="number" value="0" oninput="updateBaki(this)"></td>
-                    <td><input type="number" value="0" oninput="updateBaki(this)"></td>
-                    <td class="cash">0.00</td>
-                    <td class="baki">${g.totalSalary.toFixed(2)}</td>
-                </tr>`;
-                    });
-                });
-            }
-
-
-            function updateBaki(input) {
-                let row = input.closest('tr');
-                let name = row.dataset.name;
-                let totalSalary = parseFloat(row.cells[2].textContent) || 0;
-                let salaryPerDay = totalSalary / 26;
-
-                let workDays = parseFloat(row.cells[3].querySelector('input').value) || 0;
-                let withdrw = parseFloat(row.cells[5].querySelector('input').value) || 0;
-                let bank = parseFloat(row.cells[6].querySelector('input').value) || 0;
-
-                let netSalary = salaryPerDay * workDays;
-                row.querySelector('.net-salary').textContent = netSalary.toFixed(2);
-                let payInCash = netSalary - withdrw - bank;
-                row.querySelector('.cash').textContent = payInCash.toFixed(2);
-
-                let baki = totalSalary - withdrw - bank - payInCash;
-                row.querySelector('.baki').textContent = baki.toFixed(2);
-
-                let payments = JSON.parse(localStorage.getItem('payments') || '{}');
-                payments[name] = { workDays, withdrw, bank };
-                localStorage.setItem('payments', JSON.stringify(payments));
-            }
-
-
-            /* ---- User Manage ---- */
-            function addOrUpdateUser() {
-                let uname = document.getElementById("username").value.trim();
-                let fname = document.getElementById("fullname").value.trim();
-                let pass = document.getElementById("password").value.trim();
-                if (!uname || !fname || !pass) { alert("Please fill all fields"); return; }
-
-                db.collection("users").doc(uname).set({
+            try {
+                await setDoc(doc(db, "users", uname), {
                     username: uname,
                     fullname: fname,
                     password: pass
-                }).then(() => {
-                    alert("✅ User saved!");
-                    loadUsers();
                 });
+                alert("✅ User saved!");
+                loadUsers();
+            } catch (err) {
+                console.error("Error saving user:", err);
             }
-            function loadUsers() {
-                let tbody = document.getElementById("userTable");
-                tbody.innerHTML = "";
-                db.collection("users").get().then(snapshot => {
-                    snapshot.forEach(doc => {
-                        let u = doc.data();
-                        tbody.innerHTML += `<tr>
+        }
+        async function loadUsers() {
+            let tbody = document.getElementById("userTable");
+            tbody.innerHTML = "";
+
+            const querySnapshot = await getDocs(collection(db, "users"));
+            querySnapshot.forEach(docSnap => {
+                let u = docSnap.data();
+                tbody.innerHTML += `
+              <tr>
                 <td>${u.username}</td>
                 <td>${u.fullname}</td>
                 <td>${u.password}</td>
                 <td>
-                    <button class="btn btn-blue" onclick="editUser('${u.username}')">✏</button>
-                    <button class="btn btn-red" onclick="deleteUser('${u.username}')">🗑</button>
+                  <button class="btn btn-blue" onclick="editUser('${u.username}')">✏</button>
+                  <button class="btn btn-red" onclick="deleteUser('${u.username}')">🗑</button>
                 </td>
-            </tr>`;
-                    });
-                    fillUserDropdown(); // dropdown user filter માટે
-                });
+              </tr>`;
+            });
+        }
+
+        async function editUser(username) {
+            const userRef = doc(db, "users", username);
+            const snap = await getDoc(userRef);
+            if (snap.exists()) {
+                let u = snap.data();
+                document.getElementById("username").value = u.username;
+                document.getElementById("fullname").value = u.fullname;
+                document.getElementById("password").value = u.password;
             }
-            function editUser(username) {
-                db.collection("users").doc(username).get().then(doc => {
-                    if (doc.exists) {
-                        let u = doc.data();
-                        document.getElementById("username").value = u.username;
-                        document.getElementById("fullname").value = u.fullname;
-                        document.getElementById("password").value = u.password;
-                    }
-                });
+        }
+
+        async function deleteUser(username) {
+            if (confirm("Delete user?")) {
+                await deleteDoc(doc(db, "users", username));
+                alert("❌ User deleted");
+                loadUsers();
             }
+        }
+        async function loadReport() {
+            let selectedUser = document.getElementById("filterUserDropdown").value;
+            let from = document.getElementById("filterFrom").value;
+            let to = document.getElementById("filterTo").value;
 
-            function deleteUser(username) {
-                if (confirm("Delete user?")) {
-                    db.collection("users").doc(username).delete().then(() => {
-                        alert("❌ User deleted");
-                        loadUsers();
-                    });
-                }
+            let tbody = document.querySelector("#detailTable tbody");
+            tbody.innerHTML = "";
+
+            let q = collection(db, "workEntries");
+            let conditions = [];
+
+            if (selectedUser) conditions.push(where("name", "==", selectedUser));
+            if (from) conditions.push(where("date", ">=", from));
+            if (to) conditions.push(where("date", "<=", to));
+            if (conditions.length > 0) q = query(q, ...conditions);
+
+            const snapshot = await getDocs(q);
+
+            let tAP = 0, tMK = 0, tRM = 0, tOP = 0,
+                tAPSal = 0, tMKSal = 0, tRMSal = 0, tOPSal = 0,
+                tTotal = 0;
+            let allEntries = [];
+
+            snapshot.forEach(docSnap => {
+                let e = docSnap.data();
+                allEntries.push(e);
+
+                tbody.innerHTML += `
+          <tr>
+              <td>${e.name}</td>
+              <td>${e.date}</td>
+              <td>${e.active || 0}</td>
+              <td>${e.marking || 0}</td>
+              <td>${e.remarking || 0}</td>
+              <td>${e.outparty || 0}</td>
+              <td>${(e.activeSalary || 0).toFixed(2)}</td>
+              <td>${(e.markingSalary || 0).toFixed(2)}</td>
+              <td>${(e.remarkingSalary || 0).toFixed(2)}</td>
+              <td>${(e.outpartySalary || 0).toFixed(2)}</td>
+              <td>${(e.total || 0).toFixed(2)}</td>
+              <td>📝</td>
+          </tr>`;
+
+                tAP += e.active || 0;
+                tMK += e.marking || 0;
+                tRM += e.remarking || 0;
+                tOP += e.outparty || 0;
+                tAPSal += e.activeSalary || 0;
+                tMKSal += e.markingSalary || 0;
+                tRMSal += e.remarkingSalary || 0;
+                tOPSal += e.outpartySalary || 0;
+                tTotal += e.total || 0;
+            });
+
+            // ✅ update totals footer
+            document.getElementById("tAP").textContent = tAP;
+            document.getElementById("tMK").textContent = tMK;
+            document.getElementById("tRM").textContent = tRM;
+            document.getElementById("tOP").textContent = tOP;
+            document.getElementById("tAPSal").textContent = "₹" + tAPSal.toFixed(2);
+            document.getElementById("tMKSal").textContent = "₹" + tMKSal.toFixed(2);
+            document.getElementById("tRMSal").textContent = "₹" + tRMSal.toFixed(2);
+            document.getElementById("tOPSal").textContent = "₹" + tOPSal.toFixed(2);
+            document.getElementById("tTotalSal").textContent = "₹" + tTotal.toFixed(2);
+
+            // ✅ update summary box
+            if (allEntries.length > 0) {
+                document.getElementById("todaySalary").textContent = "Today Salary: ₹" + (allEntries[allEntries.length - 1].total || 0).toFixed(2);
+                document.getElementById("monthlyAvgPieces").textContent = "Monthly Avg Pieces: " + Math.round((tAP + tMK + tRM + tOP) / allEntries.length);
+                document.getElementById("monthlyAvgSalary").textContent = "Monthly Avg Salary: ₹" + (tTotal / allEntries.length).toFixed(2);
+                document.getElementById("totalSalary").textContent = "Total Salary: ₹" + tTotal.toFixed(2);
+            } else {
+                document.getElementById("todaySalary").textContent = "Today Salary: ₹0.00";
+                document.getElementById("monthlyAvgPieces").textContent = "Monthly Avg Pieces: 0";
+                document.getElementById("monthlyAvgSalary").textContent = "Monthly Avg Salary: ₹0.00";
+                document.getElementById("totalSalary").textContent = "Total Salary: ₹0.00";
             }
-            function loadReport() {
-                let selectedUser = document.getElementById("filterUserDropdown").value;
-                let from = document.getElementById("filterFrom").value;
-                let to = document.getElementById("filterTo").value;
-
-                let tbody = document.querySelector("#detailTable tbody");
-                tbody.innerHTML = "";
-
-                let query = db.collection("workEntries");
-                if (selectedUser) query = query.where("name", "==", selectedUser);
-                if (from) query = query.where("date", ">=", from);
-                if (to) query = query.where("date", "<=", to);
-
-                query.get().then(snapshot => {
-                    let tAP = 0, tMK = 0, tRM = 0, tOP = 0, tAPSal = 0, tMKSal = 0, tRMSal = 0, tOPSal = 0, tTotal = 0;
-
-                    snapshot.forEach(doc => {
-                        let e = doc.data();
-                        tbody.innerHTML += `
-                <tr>
-                    <td>${e.name}</td>
-                    <td>${e.date}</td>
-                    <td>${e.active || 0}</td>
-                    <td>${e.marking || 0}</td>
-                    <td>${e.remarking || 0}</td>
-                    <td>${e.outparty || 0}</td>
-                    <td>${e.activeSalary?.toFixed(2) || 0}</td>
-                    <td>${e.markingSalary?.toFixed(2) || 0}</td>
-                    <td>${e.remarkingSalary?.toFixed(2) || 0}</td>
-                    <td>${e.outpartySalary?.toFixed(2) || 0}</td>
-                    <td>${e.total?.toFixed(2) || 0}</td>
-                    <td>📝</td>
-                </tr>`;
-
-                        tAP += e.active || 0;
-                        tMK += e.marking || 0;
-                        tRM += e.remarking || 0;
-                        tOP += e.outparty || 0;
-                        tAPSal += e.activeSalary || 0;
-                        tMKSal += e.markingSalary || 0;
-                        tRMSal += e.remarkingSalary || 0;
-                        tOPSal += e.outpartySalary || 0;
-                        tTotal += e.total || 0;
-                    });
-
-                    document.getElementById("tAP").textContent = tAP;
-                    document.getElementById("tMK").textContent = tMK;
-                    document.getElementById("tRM").textContent = tRM;
-                    document.getElementById("tOP").textContent = tOP;
-                    document.getElementById("tAPSal").textContent = "₹" + tAPSal.toFixed(2);
-                    document.getElementById("tMKSal").textContent = "₹" + tMKSal.toFixed(2);
-                    document.getElementById("tRMSal").textContent = "₹" + tRMSal.toFixed(2);
-                    document.getElementById("tOPSal").textContent = "₹" + tOPSal.toFixed(2);
-                    document.getElementById("tTotalSal").textContent = "₹" + tTotal.toFixed(2);
-                });
-            }
+        }
 
 
-                // Summary top box
-                if (filtered.length > 0) {
-                    document.getElementById("todaySalary").textContent = "Today Salary: ₹" + (filtered[filtered.length - 1].total || 0).toFixed(2);
-                    document.getElementById("monthlyAvgPieces").textContent = "Monthly Avg Pieces: " + Math.round((tAP + tMK + tRM + tOP) / filtered.length);
-                    document.getElementById("monthlyAvgSalary").textContent = "Monthly Avg Salary: ₹" + (tTotal / filtered.length).toFixed(2);
-                    document.getElementById("totalSalary").textContent = "Total Salary: ₹" + tTotal.toFixed(2);
-                } else {
-                    document.getElementById("todaySalary").textContent = "Today Salary: ₹0.00";
-                    document.getElementById("monthlyAvgPieces").textContent = "Monthly Avg Pieces: 0";
-                    document.getElementById("monthlyAvgSalary").textContent = "Monthly Avg Salary: ₹0.00";
-                    document.getElementById("totalSalary").textContent = "Total Salary: ₹0.00";
-                }
-            
-
-            // Populate filter user dropdown
-            function fillUserDropdown() {
-                let dropdown = document.getElementById("filterUserDropdown");
-                dropdown.innerHTML = '<option value="">-- Select User --</option>';
-
-                db.collection("users").get().then(snapshot => {
-                    snapshot.forEach(doc => {
-                        let u = doc.data();
-                        let opt = document.createElement("option");
-                        opt.value = u.fullname || u.username;
-                        opt.textContent = u.fullname || u.username;
-                        dropdown.appendChild(opt);
-                    });
-                });
-            }
 
 
-            fillUserDropdown();
+        // Populate filter user dropdown
+        async function fillUserDropdown() {
+            let dropdown = document.getElementById("filterUserDropdown");
+            dropdown.innerHTML = '<option value="">-- Select User --</option>';
 
-            /* ---- Report Export ---- */
-            function exportExcel() {
-                let table = document.getElementById("detailTable");
-                let wb = XLSX.utils.table_to_book(table, { sheet: "Report" });
-                XLSX.writeFile(wb, "Employee_Report.xlsx");
-            }
-            function exportPDF() {
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF();
-                doc.text("Employee Report", 14, 10);
-                doc.autoTable({ html: '#detailTable', startY: 20 });
-                doc.save('Employee_Report.pdf');
-            }
+            const snapshot = await getDocs(collection(db, "users"));
+            snapshot.forEach(docSnap => {
+                let u = docSnap.data();
+                let opt = document.createElement("option");
+                opt.value = u.username;
+                opt.textContent = u.fullname || u.username;
+                dropdown.appendChild(opt);
+            });
+        }
 
-            // Initialize Firebase
-            const app = firebase.initializeApp(firebaseConfig);
-            const db = firebase.firestore();
 
-            loadUsers();
-        </script>
+        /* ---- Report Export ---- */
+        function exportExcel() {
+            let table = document.getElementById("detailTable");
+            let wb = XLSX.utils.table_to_book(table, { sheet: "Report" });
+            XLSX.writeFile(wb, "Employee_Report.xlsx");
+        }
+        function exportPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.text("Employee Report", 14, 10);
+            doc.autoTable({ html: '#detailTable', startY: 20 });
+            doc.save('Employee_Report.pdf');
+        }
+
+
+
+
+        loadUsers();
+
+        window.addOrUpdateUser = addOrUpdateUser;
+        window.loadReport = loadReport;
+        window.updateBaki = updateBaki;
+        window.logout = logout;
+        window.showSection = showSection;
+        window.editUser = editUser;
+        window.deleteUser = deleteUser;
+        window.exportExcel = exportExcel;
+        window.exportPDF = exportPDF;
+
+    </script>
 </body>
 </html>
