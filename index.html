@@ -131,37 +131,36 @@
 
             if (!uname || !pass) {
                 errorMsg.textContent = "કૃપા કરીને યુઝરનેમ અને પાસવર્ડ નાખો.";
+                return false;
+            }
+
+            // 🔑 Admin hardcoded login
+            if (uname === "admin" && pass === "admin") {
+                let user = { username: "admin", fullname: "Administrator" };
+                localStorage.setItem("loggedUser", JSON.stringify(user));
+                window.location.href = "admin.html";
                 return;
             }
 
-            try {
-                // 🔹 Firestore માંથી user લાવો
-                const docRef = db.collection("users").doc(uname);
-                const docSnap = await docRef.get();
+            // 🔑 Firestore users check
+            db.collection("users").where("username", "==", uname).where("password", "==", pass)
+                .get()
+                .then(snapshot => {
+                    if (snapshot.empty) {
+                        errorMsg.textContent = "યૂઝર મળ્યો નહીં. ફરીથી લોગિન કરો.";
+                        return;
+                    }
 
-                if (!docSnap.exists) {
-                    errorMsg.textContent = "યૂઝર મળ્યો નહીં.";
-                    return;
-                }
-
-                let user = docSnap.data();
-                if (user.password !== pass) {
-                    errorMsg.textContent = "ખોટો પાસવર્ડ.";
-                    return;
-                }
-
-                // 🔹 Login success → session save
-                localStorage.setItem("loggedUser", JSON.stringify(user));
-
-                if (user.username === "admin") {
-                    window.location.href = "admin.html";
-                } else {
-                    window.location.href = "workentry.html";
-                }
-            } catch (e) {
-                console.error("Login error:", e);
-                errorMsg.textContent = "Login error. Console તપાસો.";
-            }
+                    snapshot.forEach(doc => {
+                        let user = doc.data();
+                        localStorage.setItem("loggedUser", JSON.stringify(user));
+                        window.location.href = "workentry.html";
+                    });
+                })
+                .catch(err => {
+                    console.error("Login Error:", err);
+                    errorMsg.textContent = "Login error. Check console.";
+                });
         }
     </script>
 </body>
