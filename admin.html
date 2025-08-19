@@ -6,6 +6,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.19.3/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -190,7 +192,6 @@
             border: 1px solid #bbb;
             border-radius: 4px;
         }
-
     </style>
 </head>
 <body>
@@ -324,6 +325,15 @@
         </div>
 
         <script>
+
+            const firebaseConfig = {
+                apiKey: "AIzaSyBcevmTwJ7T6xid6s-4csUm4UiFKUn7q_Q",
+                authDomain: "my-work-update.firebaseapp.com",
+                projectId: "my-work-update",
+                storageBucket: "my-work-update.firebasestorage.app",
+                messagingSenderId: "521466697898",
+                appId: "1:521466697898:web:071cb3372c2d686ead98d3"
+            };
             let users = JSON.parse(localStorage.getItem("users") || "[]");
             let workEntries = JSON.parse(localStorage.getItem("workEntries") || "[]");
 
@@ -347,41 +357,38 @@
 
             /* ---- Salary Summary ---- */
             function loadSalarySummary() {
-                let entries = JSON.parse(localStorage.getItem('workEntries') || '[]');
-                let payments = JSON.parse(localStorage.getItem('payments') || '{}');
-                let grouped = {};
-
-                entries.forEach(e => {
-                    if (!grouped[e.name]) grouped[e.name] = { totalSalary: 0 };
-                    grouped[e.name].totalSalary += e.total || 0;
-                });
-
                 let tbody = document.getElementById('salary-body');
                 tbody.innerHTML = '';
-                let sr = 1;
 
-                Object.keys(grouped).forEach(name => {
-                    let g = grouped[name];
-                    let salaryPerDay = g.totalSalary / 26;
-                    let pay = payments[name] || { workDays: 0, withdrw: 0, bank: 0 };
-                    let netSalary = salaryPerDay * (pay.workDays || 0);
-                    let payInCash = netSalary - (pay.withdrw || 0) - (pay.bank || 0);
-                    let baki = g.totalSalary - (pay.withdrw || 0) - (pay.bank || 0) - payInCash;
+                db.collection("workEntries").get().then(snapshot => {
+                    let grouped = {};
+                    snapshot.forEach(doc => {
+                        let e = doc.data();
+                        if (!grouped[e.name]) grouped[e.name] = { totalSalary: 0 };
+                        grouped[e.name].totalSalary += e.total || 0;
+                    });
 
-                    tbody.innerHTML += `
-        <tr data-name="${name}">
-            <td>${sr++}</td>
-            <td>${name}</td>
-            <td>${g.totalSalary.toFixed(2)}</td>
-            <td><input type="number" value="${pay.workDays}" oninput="updateBaki(this)"></td>
-            <td class="net-salary">${netSalary.toFixed(2)}</td>
-            <td><input type="number" value="${pay.withdrw}" oninput="updateBaki(this)"></td>
-            <td><input type="number" value="${pay.bank}" oninput="updateBaki(this)"></td>
-            <td class="cash">${payInCash.toFixed(2)}</td>
-            <td class="baki">${baki.toFixed(2)}</td>
-        </tr>`;
+                    let sr = 1;
+                    Object.keys(grouped).forEach(name => {
+                        let g = grouped[name];
+                        let salaryPerDay = g.totalSalary / 26;
+
+                        tbody.innerHTML += `
+                <tr>
+                    <td>${sr++}</td>
+                    <td>${name}</td>
+                    <td>${g.totalSalary.toFixed(2)}</td>
+                    <td><input type="number" value="0" oninput="updateBaki(this)"></td>
+                    <td class="net-salary">0.00</td>
+                    <td><input type="number" value="0" oninput="updateBaki(this)"></td>
+                    <td><input type="number" value="0" oninput="updateBaki(this)"></td>
+                    <td class="cash">0.00</td>
+                    <td class="baki">${g.totalSalary.toFixed(2)}</td>
+                </tr>`;
+                    });
                 });
             }
+
 
             function updateBaki(input) {
                 let row = input.closest('tr');
@@ -413,29 +420,33 @@
                 let fname = document.getElementById("fullname").value.trim();
                 let pass = document.getElementById("password").value.trim();
                 if (!uname || !fname || !pass) { alert("Please fill all fields"); return; }
-                let idx = users.findIndex(u => u.username === uname);
-                if (idx >= 0) { users[idx].fullname = fname; users[idx].password = pass; }
-                else { users.push({ username: uname, fullname: fname, password: pass }); }
-                localStorage.setItem("users", JSON.stringify(users));
-                loadUsers();
-                document.getElementById("username").value = "";
-                document.getElementById("fullname").value = "";
-                document.getElementById("password").value = "";
+
+                db.collection("users").doc(uname).set({
+                    username: uname,
+                    fullname: fname,
+                    password: pass
+                }).then(() => {
+                    alert("✅ User saved!");
+                    loadUsers();
+                });
             }
             function loadUsers() {
-                users = JSON.parse(localStorage.getItem("users") || "[]");
                 let tbody = document.getElementById("userTable");
                 tbody.innerHTML = "";
-                users.forEach(u => {
-                    tbody.innerHTML += `<tr>
-                        <td>${u.username}</td>
-                        <td>${u.fullname}</td>
-                        <td>${u.password}</td>
-                        <td>
-                            <button class="btn btn-blue" onclick="editUser('${u.username}')">✏</button>
-                            <button class="btn btn-red" onclick="deleteUser('${u.username}')">🗑</button>
-                        </td>
-                    </tr>`;
+                db.collection("users").get().then(snapshot => {
+                    snapshot.forEach(doc => {
+                        let u = doc.data();
+                        tbody.innerHTML += `<tr>
+                <td>${u.username}</td>
+                <td>${u.fullname}</td>
+                <td>${u.password}</td>
+                <td>
+                    <button class="btn btn-blue" onclick="editUser('${u.username}')">✏</button>
+                    <button class="btn btn-red" onclick="deleteUser('${u.username}')">🗑</button>
+                </td>
+            </tr>`;
+                    });
+                    fillUserDropdown(); // dropdown user filter માટે
                 });
             }
             function editUser(username) {
@@ -448,73 +459,69 @@
             }
             function deleteUser(username) {
                 if (confirm("Delete user?")) {
-                    users = users.filter(u => u.username !== username);
-                    localStorage.setItem("users", JSON.stringify(users));
-                    loadUsers();
+                    db.collection("users").doc(username).delete().then(() => {
+                        alert("❌ User deleted");
+                        loadUsers();
+                    });
                 }
             }
             function loadReport() {
-                let entries = JSON.parse(localStorage.getItem("workEntries") || "[]");
-
-                // Filter values
                 let selectedUser = document.getElementById("filterUserDropdown").value;
                 let from = document.getElementById("filterFrom").value;
                 let to = document.getElementById("filterTo").value;
 
-                // Filter logic
-                let filtered = entries.filter(e => {
-                    let ok = true;
-                    if (selectedUser && e.name !== selectedUser) ok = false;  // ✅ match fullname
-                    if (from && new Date(e.date) < new Date(from)) ok = false;
-                    if (to && new Date(e.date) > new Date(to)) ok = false;
-                    return ok;
-                })
-
-                // Reset table
                 let tbody = document.querySelector("#detailTable tbody");
                 tbody.innerHTML = "";
 
-                let tAP = 0, tMK = 0, tRM = 0, tOP = 0, tAPSal = 0, tMKSal = 0, tRMSal = 0, tOPSal = 0, tTotal = 0;
+                let query = db.collection("workEntries");
+                if (selectedUser) query = query.where("name", "==", selectedUser);
+                if (from) query = query.where("date", ">=", from);
+                if (to) query = query.where("date", "<=", to);
 
-                filtered.forEach((e, i) => {
-                    tbody.innerHTML += `
-            <tr>
-                <td>${e.name}</td>
-                <td>${e.date}</td>
-                <td>${e.active || 0}</td>
-                <td>${e.marking || 0}</td>
-                <td>${e.remarking || 0}</td>
-                <td>${e.outparty || 0}</td>
-                <td>${e.activeSalary?.toFixed(2) || 0}</td>
-                <td>${e.markingSalary?.toFixed(2) || 0}</td>
-                <td>${e.remarkingSalary?.toFixed(2) || 0}</td>
-                <td>${e.outpartySalary?.toFixed(2) || 0}</td>
-                <td>${e.total?.toFixed(2) || 0}</td>
-                <td>📝</td>
-            </tr>`;
+                query.get().then(snapshot => {
+                    let tAP = 0, tMK = 0, tRM = 0, tOP = 0, tAPSal = 0, tMKSal = 0, tRMSal = 0, tOPSal = 0, tTotal = 0;
 
-                    // Totals
-                    tAP += e.active || 0;
-                    tMK += e.marking || 0;
-                    tRM += e.remarking || 0;
-                    tOP += e.outparty || 0;
-                    tAPSal += e.activeSalary || 0;
-                    tMKSal += e.markingSalary || 0;
-                    tRMSal += e.remarkingSalary || 0;
-                    tOPSal += e.outpartySalary || 0;
-                    tTotal += e.total || 0;
+                    snapshot.forEach(doc => {
+                        let e = doc.data();
+                        tbody.innerHTML += `
+                <tr>
+                    <td>${e.name}</td>
+                    <td>${e.date}</td>
+                    <td>${e.active || 0}</td>
+                    <td>${e.marking || 0}</td>
+                    <td>${e.remarking || 0}</td>
+                    <td>${e.outparty || 0}</td>
+                    <td>${e.activeSalary?.toFixed(2) || 0}</td>
+                    <td>${e.markingSalary?.toFixed(2) || 0}</td>
+                    <td>${e.remarkingSalary?.toFixed(2) || 0}</td>
+                    <td>${e.outpartySalary?.toFixed(2) || 0}</td>
+                    <td>${e.total?.toFixed(2) || 0}</td>
+                    <td>📝</td>
+                </tr>`;
+
+                        tAP += e.active || 0;
+                        tMK += e.marking || 0;
+                        tRM += e.remarking || 0;
+                        tOP += e.outparty || 0;
+                        tAPSal += e.activeSalary || 0;
+                        tMKSal += e.markingSalary || 0;
+                        tRMSal += e.remarkingSalary || 0;
+                        tOPSal += e.outpartySalary || 0;
+                        tTotal += e.total || 0;
+                    });
+
+                    document.getElementById("tAP").textContent = tAP;
+                    document.getElementById("tMK").textContent = tMK;
+                    document.getElementById("tRM").textContent = tRM;
+                    document.getElementById("tOP").textContent = tOP;
+                    document.getElementById("tAPSal").textContent = "₹" + tAPSal.toFixed(2);
+                    document.getElementById("tMKSal").textContent = "₹" + tMKSal.toFixed(2);
+                    document.getElementById("tRMSal").textContent = "₹" + tRMSal.toFixed(2);
+                    document.getElementById("tOPSal").textContent = "₹" + tOPSal.toFixed(2);
+                    document.getElementById("tTotalSal").textContent = "₹" + tTotal.toFixed(2);
                 });
+            }
 
-                // Fill footer totals
-                document.getElementById("tAP").textContent = tAP;
-                document.getElementById("tMK").textContent = tMK;
-                document.getElementById("tRM").textContent = tRM;
-                document.getElementById("tOP").textContent = tOP;
-                document.getElementById("tAPSal").textContent = "₹" + tAPSal.toFixed(2);
-                document.getElementById("tMKSal").textContent = "₹" + tMKSal.toFixed(2);
-                document.getElementById("tRMSal").textContent = "₹" + tRMSal.toFixed(2);
-                document.getElementById("tOPSal").textContent = "₹" + tOPSal.toFixed(2);
-                document.getElementById("tTotalSal").textContent = "₹" + tTotal.toFixed(2);
 
                 // Summary top box
                 if (filtered.length > 0) {
@@ -528,7 +535,7 @@
                     document.getElementById("monthlyAvgSalary").textContent = "Monthly Avg Salary: ₹0.00";
                     document.getElementById("totalSalary").textContent = "Total Salary: ₹0.00";
                 }
-            }
+            
 
             // Populate filter user dropdown
             function fillUserDropdown() {
@@ -557,6 +564,10 @@
                 doc.autoTable({ html: '#detailTable', startY: 20 });
                 doc.save('Employee_Report.pdf');
             }
+
+            // Initialize Firebase
+            const app = firebase.initializeApp(firebaseConfig);
+            const db = firebase.firestore();
 
             loadUsers();
         </script>

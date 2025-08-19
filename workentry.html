@@ -506,13 +506,23 @@
 
 
         function deleteAllEntries() {
-            if (!confirm("⚠️ Are you sure you want to delete all entries?")) return;
+            if (!confirm("⚠️ Are you sure you want to delete all your entries?")) return;
 
             let loggedUser = JSON.parse(localStorage.getItem('loggedUser') || '{}');
             let userName = loggedUser.fullname || loggedUser.fullName || loggedUser.username;
 
+            if (!userName) {
+                alert("❌ User not found. Please login again.");
+                return;
+            }
+
             db.collection("workEntries").where("name", "==", userName).get()
                 .then(snapshot => {
+                    if (snapshot.empty) {
+                        alert("ℹ️ No entries found to delete.");
+                        return;
+                    }
+
                     let batch = db.batch();
                     snapshot.forEach(doc => {
                         batch.delete(doc.ref);
@@ -520,14 +530,25 @@
                     return batch.commit();
                 })
                 .then(() => {
-                    alert("✅ All entries deleted from Firestore!");
-                    showEntries(); // refresh table
+                    alert("✅ All entries deleted successfully!");
+                    document.getElementById('entries-body').innerHTML = ""; // clear table
+                    // Reset totals
+                    document.getElementById('t-active').textContent = 0;
+                    document.getElementById('t-marking').textContent = 0;
+                    document.getElementById('t-remarking').textContent = 0;
+                    document.getElementById('t-outparty').textContent = 0;
+                    document.getElementById('t-activeSalary').textContent = "0.00";
+                    document.getElementById('t-markingSalary').textContent = "0.00";
+                    document.getElementById('t-remarkingSalary').textContent = "0.00";
+                    document.getElementById('t-outpartySalary').textContent = "0.00";
+                    document.getElementById('t-totalSalary').textContent = "0.00";
                 })
                 .catch(error => {
                     console.error("Error deleting entries: ", error);
                     alert("❌ Error deleting entries. Check console.");
                 });
         }
+
 
 
         function updateProfile() {
@@ -682,23 +703,24 @@
             let tableBody = document.getElementById("withdrawDetailsBody");
             tableBody.innerHTML = "";
 
-            db.each(`SELECT EmployeeName, WorkDate, WithdrawAmount 
-             FROM WorkEntries 
-             WHERE WithdrawAmount IS NOT NULL`, [], (err, row) => {
-                if (err) {
-                    console.error(err);
-                    return;
-                }
-
-                let tr = document.createElement("tr");
-                tr.innerHTML = `
-            <td>${row.EmployeeName}</td>
-            <td>${row.WorkDate}</td>
-            <td>${row.WithdrawAmount || 0}</td>
-        `;
-                tableBody.appendChild(tr);
+            db.collection("payments").get().then(snapshot => {
+                snapshot.forEach(doc => {
+                    let data = doc.data();
+                    if (data.history) {
+                        data.history.forEach(h => {
+                            let tr = document.createElement("tr");
+                            tr.innerHTML = `
+                        <td>${doc.id}</td>
+                        <td>${h.date}</td>
+                        <td>${h.amount}</td>
+                    `;
+                            tableBody.appendChild(tr);
+                        });
+                    }
+                });
             });
         }
+
         // Initialize Firebase
         const app = firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
