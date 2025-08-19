@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore-compat.js"></script>
+
     <title>Work Entry Dashboard</title>
     <style>
         body {
@@ -265,7 +266,7 @@
                 </div>
             </div>
             <div class="table-wrapper">
-                <table id="view-entry">
+                <table id="entries-table">
                     <thead>
                         <tr>
                             <th>#</th>
@@ -361,11 +362,12 @@
     <script>
 
 
+
         const firebaseConfig = {
             apiKey: "AIzaSyBcevmTwJ7T6xid6s-4csUm4UiFKUn7q_Q",
             authDomain: "my-work-update.firebaseapp.com",
             projectId: "my-work-update",
-            storageBucket: "my-work-update.firebasestorage.app",
+            storageBucket: "my-work-update.appspot.com", // ✅ FIX
             messagingSenderId: "521466697898",
             appId: "1:521466697898:web:071cb3372c2d686ead98d3"
         };
@@ -431,23 +433,64 @@
                 createdAt: new Date()
             };
 
-            // 🔥 Save in Firestore
-            db.collection("workEntries").add(entry)
-                .then(() => {
-                    alert("✅ Entry Saved to Firestore!");
+            // 🔥 Check duplicate (same name + date)
+            db.collection("workEntries")
+                .where("name", "==", name)
+                .where("date", "==", date)
+                .get()
+                .then(snapshot => {
+                    if (!snapshot.empty) {
+                        // 🔄 If entry exists → Update
+                        let docId = snapshot.docs[0].id;
+                        db.collection("workEntries").doc(docId).update(entry)
+                            .then(() => {
+                                alert("✏️ Entry Updated Successfully!");
+                                resetForm(); // clear inputs
+                            })
+                            .catch(error => {
+                                console.error("Error updating entry: ", error);
+                                alert("❌ Error updating entry. Check console.");
+                            });
+                    } else {
+                        // ➕ If no entry → Add new
+                        db.collection("workEntries").add(entry)
+                            .then(() => {
+                                alert("✅ Entry Saved Successfully!");
+                                resetForm(); // clear inputs
+                            })
+                            .catch(error => {
+                                console.error("Error saving entry: ", error);
+                                alert("❌ Error saving entry. Check console.");
+                            });
+                    }
                 })
                 .catch(error => {
-                    console.error("Error saving entry: ", error);
-                    alert("❌ Error saving entry. Check console.");
+                    console.error("Error checking duplicate: ", error);
                 });
         }
+
+        // 🧹 Function to clear all input fields
+        function resetForm() {
+            document.getElementById('date').value = "";
+            document.getElementById('active').value = "";
+            document.getElementById('marking').value = "";
+            document.getElementById('remarking').value = "";
+            document.getElementById('outparty').value = "";
+        }
+
+
+
 
 
 
         function showEntries() {
             showSection('view-entry');
+
             let loggedUser = JSON.parse(localStorage.getItem('loggedUser') || '{}');
+            // 🟢 SAME field use karo je save vakhte kariye che
             let userName = loggedUser.fullname || loggedUser.fullName || loggedUser.username;
+
+            console.log("📌 Current User for filter:", userName);
 
             let tbody = document.getElementById('entries-body');
             tbody.innerHTML = '';
@@ -456,27 +499,37 @@
                 activeSalary: 0, markingSalary: 0, remarkingSalary: 0, outpartySalary: 0, totalSalary: 0
             };
 
-            // 🔥 Fetch from Firestore
-            db.collection("workEntries").where("name", "==", userName).orderBy("date")
+            // 🟢 first test without orderBy
+            db.collection("workEntries")
+                .where("name", "==", userName)
                 .get()
                 .then(snapshot => {
+                    console.log("📦 Query result size:", snapshot.size);
+
+                    if (snapshot.empty) {
+                        tbody.innerHTML = `<tr><td colspan="11" style="text-align:center;color:gray;">No entries found</td></tr>`;
+                        return;
+                    }
+
                     let i = 1;
                     snapshot.forEach(doc => {
                         let e = doc.data();
+                        console.log("➡️ Entry:", e);
+
                         tbody.innerHTML += `
-                <tr>
-                    <td>${i++}</td>
-                    <td>${e.date}</td>
-                    <td>${e.active}</td>
-                    <td>${e.marking}</td>
-                    <td>${e.remarking}</td>
-                    <td>${e.outparty}</td>
-                    <td>${e.activeSalary.toFixed(2)}</td>
-                    <td>${e.markingSalary.toFixed(2)}</td>
-                    <td>${e.remarkingSalary.toFixed(2)}</td>
-                    <td>${e.outpartySalary.toFixed(2)}</td>
-                    <td>${e.total.toFixed(2)}</td>
-                </tr>`;
+                    <tr>
+                        <td>${i++}</td>
+                        <td>${e.date || '-'}</td>
+                        <td>${e.active}</td>
+                        <td>${e.marking}</td>
+                        <td>${e.remarking}</td>
+                        <td>${e.outparty}</td>
+                        <td>${(e.activeSalary || 0).toFixed(2)}</td>
+                        <td>${(e.markingSalary || 0).toFixed(2)}</td>
+                        <td>${(e.remarkingSalary || 0).toFixed(2)}</td>
+                        <td>${(e.outpartySalary || 0).toFixed(2)}</td>
+                        <td>${(e.total || 0).toFixed(2)}</td>
+                    </tr>`;
 
                         total.active += e.active;
                         total.marking += e.marking;
@@ -489,7 +542,7 @@
                         total.totalSalary += e.total;
                     });
 
-                    // Totals update
+                    // Update totals
                     document.getElementById('t-active').textContent = total.active;
                     document.getElementById('t-marking').textContent = total.marking;
                     document.getElementById('t-remarking').textContent = total.remarking;
@@ -499,8 +552,16 @@
                     document.getElementById('t-remarkingSalary').textContent = total.remarkingSalary.toFixed(2);
                     document.getElementById('t-outpartySalary').textContent = total.outpartySalary.toFixed(2);
                     document.getElementById('t-totalSalary').textContent = total.totalSalary.toFixed(2);
+                })
+                .catch(error => {
+                    console.error("❌ Firestore query error:", error);
+                    alert("Error fetching entries. Check console for details.");
                 });
         }
+
+
+
+
 
 
 
@@ -589,42 +650,44 @@
             let loggedUser = JSON.parse(localStorage.getItem('loggedUser') || '{}');
             let userName = loggedUser.fullname || loggedUser.fullName || loggedUser.username;
 
-            let entries = JSON.parse(localStorage.getItem('workEntries') || '[]');
-            entries = entries.filter(e => e.name === userName);  // 🔑 only current user
+            db.collection("workEntries")
+                .where("name", "==", userName)
+                .get()
+                .then(snapshot => {
+                    let totalSalary = 0;
+                    snapshot.forEach(doc => {
+                        let e = doc.data();
+                        totalSalary += e.total || 0;
+                    });
 
-            let payments = JSON.parse(localStorage.getItem('payments') || '{}');
-            let grouped = {};
+                    let tbody = document.getElementById('salary-body');
+                    tbody.innerHTML = '';
 
-            entries.forEach(e => {
-                if (!grouped[e.name]) grouped[e.name] = { totalSalary: 0 };
-                grouped[e.name].totalSalary += e.total;
-            });
+                    let salaryPerDay = totalSalary / 26; // 26 working days
+                    let payments = JSON.parse(localStorage.getItem('payments') || '{}');
+                    let pay = payments[userName] || { workDays: 0, withdrw: 0, bank: 0 };
+                    let netSalary = salaryPerDay * (pay.workDays || 0);
+                    let payInCash = netSalary - (pay.withdrw || 0) - (pay.bank || 0);
 
-            let tbody = document.getElementById('salary-body');
-            tbody.innerHTML = '';
-            let sr = 1;
-
-            Object.keys(grouped).forEach(name => {
-                let g = grouped[name];
-                let salaryPerDay = g.totalSalary / 26;
-
-                let pay = payments[name] || { workDays: 0, withdrw: 0, bank: 0 };
-                let netSalary = salaryPerDay * (pay.workDays || 0);
-                let payInCash = netSalary - (pay.withdrw || 0) - (pay.bank || 0);
-
-                tbody.innerHTML += `
-<tr data-name="${name}">
-    <td>${sr++}</td>
-    <td>${name}</td>
-    <td>${g.totalSalary.toFixed(2)}</td>
-    <td><input type="number" class="workday-input" value="${pay.workDays}" readonly></td>
-    <td class="net-salary">${netSalary.toFixed(2)}</td>
-    <td><input type="number" class="salary-input" value="${pay.withdrw}" readonly></td>
-    <td><input type="number" class="salary-input" value="${pay.bank}" readonly></td>
-    <td class="cash">${payInCash.toFixed(2)}</td>
-</tr>`;
-            });
+                    tbody.innerHTML += `
+                <tr>
+                    <td>1</td>
+                    <td>${userName}</td>
+                    <td>${totalSalary.toFixed(2)}</td>
+                    <td>${pay.workDays}</td>
+                    <td>${netSalary.toFixed(2)}</td>
+                    <td>${pay.withdrw}</td>
+                    <td>${pay.bank}</td>
+                    <td>${payInCash.toFixed(2)}</td>
+                </tr>`;
+                })
+                .catch(error => {
+                    console.error("❌ Error fetching salary summary:", error);
+                    alert("Error fetching salary summary.");
+                });
         }
+
+
 
 
 

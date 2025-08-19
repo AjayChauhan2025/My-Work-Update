@@ -570,15 +570,32 @@
             let dropdown = document.getElementById("filterUserDropdown");
             dropdown.innerHTML = '<option value="">-- Select User --</option>';
 
-            const snapshot = await getDocs(collection(db, "users"));
-            snapshot.forEach(docSnap => {
-                let u = docSnap.data();
-                let opt = document.createElement("option");
-                opt.value = u.username;
-                opt.textContent = u.fullname || u.username;
-                dropdown.appendChild(opt);
-            });
+            try {
+                const snapshot = await getDocs(collection(db, "users"));
+                snapshot.forEach(docSnap => {
+                    let u = docSnap.data();
+
+                    // ✅ fullname available હોય તો fullname, નહીંતર username
+                    let displayName = u.fullname && u.fullname.trim() !== "" ? u.fullname : u.username;
+
+                    let opt = document.createElement("option");
+                    opt.value = u.username;   // filter માટે unique value
+                    opt.textContent = displayName; // dropdown માં fullname દેખાશે
+                    dropdown.appendChild(opt);
+                });
+            } catch (err) {
+                console.error("❌ Error loading users:", err);
+            }
         }
+
+        // ✅ page load પર call કરો
+        document.addEventListener("DOMContentLoaded", fillUserDropdown);
+
+
+
+
+
+
 
 
         /* ---- Report Export ---- */
