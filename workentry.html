@@ -117,6 +117,15 @@
             background: #34b7f1;
             color: white;
         }
+        .table-wrapper {
+            overflow-x: auto; /* 🔑 allows horizontal scroll */
+            -webkit-overflow-scrolling: touch; /* smooth scrolling on mobile */
+        }
+
+            .table-wrapper table {
+                min-width: 800px; /* Set a minimum width for table */
+            }
+
         /* Table */
         table {
             border-collapse: collapse;
@@ -124,8 +133,9 @@
             width: 100%;
             background: white;
             border-radius: 10px;
-            overflow: hidden;
+            overflow: auto;
             table-layout: fixed; /* 👈 fix column width */
+            -webkit-overflow-scrolling: touch;
         }
 
             table th, table td {
@@ -136,21 +146,53 @@
             }
 
                 /* Column widths */
-                table th:nth-child(2),
-                table td:nth-child(2) {
-                    width: 25%; /* Full Name column mota */
-                    text-align: left; /* 👈 naam left align */
-                }
+        /* Example: specific column widths */
+        #salary-summary th:nth-child(1),
+        #salary-summary td:nth-child(1) {
+            width: 5%;
+        }
+        /* SR.NO */
+        #salary-summary th:nth-child(2),
+        #salary-summary td:nth-child(2) {
+            width: 20%;
+        }
+        /* NAME */
+        #salary-summary th:nth-child(3),
+        #salary-summary td:nth-child(3) {
+            width: 15%;
+        }
+        /* SALARY */
+        #salary-summary th:nth-child(4),
+        #salary-summary td:nth-child(4) {
+            width: 10%;
+        }
+        /* WorkDay */
+        #salary-summary th:nth-child(5),
+        #salary-summary td:nth-child(5) {
+            width: 15%;
+        }
+        /* NetSalary */
+        #salary-summary th:nth-child(6),
+        #salary-summary td:nth-child(6) {
+            width: 10%;
+        }
+        /* Withdrw */
+        #salary-summary th:nth-child(7),
+        #salary-summary td:nth-child(7) {
+            width: 10%;
+        }
+        /* BankSalary */
+        #salary-summary th:nth-child(8),
+        #salary-summary td:nth-child(8) {
+            width: 15%;
+        }
+        /* Pay in Cash */
 
-                table th:not(:nth-child(2)),
-                table td:not(:nth-child(2)) {
-                    width: 8%; /* baaki badha ochha */
-                }
         /* Common input styling */
         .salary-input, .workday-input {
-            width: 70px; /* 👈 nana width */
+            width: 55px; /* 👈 nana width */
             padding: 4px 6px;
-            font-size: 14px;
+            font-size: 16px;
             text-align: center;
             border: 1px solid #999;
             border-radius: 6px;
@@ -219,96 +261,99 @@
                     <button class="logout-btn" onclick="showSection('dashboard')">⬅ Back</button>
                 </div>
             </div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Date</th>
-                        <th>Active</th>
-                        <th>Marking</th>
-                        <th>ReMarking</th>
-                        <th>OutParty</th>
-                        <th>ActivePartSalary</th>
-                        <th>MarkingSalary</th>
-                        <th>ReMarkingSalary</th>
-                        <th>OutPartySalary</th>
-                        <th>TotalSalary</th>
-                    </tr>
-                </thead>
-                <tbody id="entries-body"></tbody>
-                <tfoot>
-                    <tr id="total-row">
-                        <th colspan="2">TOTAL</th>
-                        <th id="t-active">0</th>
-                        <th id="t-marking">0</th>
-                        <th id="t-remarking">0</th>
-                        <th id="t-outparty">0</th>
-                        <th id="t-activeSalary">0.00</th>
-                        <th id="t-markingSalary">0.00</th>
-                        <th id="t-remarkingSalary">0.00</th>
-                        <th id="t-outpartySalary">0.00</th>
-                        <th id="t-totalSalary">0.00</th>
-                    </tr>
-                </tfoot>
-            </table>
-        </div>
-
-
-        <!-- Update Profile -->
-        <div id="update-profile" class="section card card-white" style="display:none;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <h2>Update Profile</h2>
-                <button class="logout-btn" onclick="showSection('dashboard')">⬅ Back</button>
-            </div>
-            <div class="form-group">
-                <label>User name:</label>
-                <input type="text" id="username">
-                <label>New Password:</label>
-                <input type="password" id="password">
-            </div>
-            <button class="update-btn" onclick="updateProfile()">🔒 Update Profile</button>
-        </div>
-        <!-- Manage Salary -->
-        <div id="manage-salary" class="section card" style="display:none;">
-            <h2>Manage Salary & Summary</h2>
-            <button class="logout-btn" onclick="showSection('dashboard')">⬅ Back</button>
-
-            <table id="salary-summary">
-                <thead>
-                    <tr>
-                        <th>SR.NO</th>
-                        <th>NAME (Full Name)</th>
-                        <th>SALARY (Total)</th>
-                        <th>WorkDay</th>
-                        <th>NetSalary</th>
-                        <th>Withdrw</th>
-                        <th>BankSalary</th>
-                        <th>Pay In Cash</th>
-                    </tr>
-                </thead>
-                <tbody id="salary-body"></tbody>
-            </table>
-
-            <!-- ✅ Withdraw History Box (inside Manage Salary only) -->
-            <div class="card" style="margin-top:20px;">
-                <h3 style="color:#075e54;">💳 Withdraw History</h3>
-                <table id="withdraw-history">
+            <div class="table-wrapper">
+                <table id="view-entry">
                     <thead>
                         <tr>
                             <th>#</th>
-                            <th>Date & Time</th>
-                            <th>Amount</th>
+                            <th>Date</th>
+                            <th>Active</th>
+                            <th>Marking</th>
+                            <th>ReMarking</th>
+                            <th>OutParty</th>
+                            <th>ActivePartSalary</th>
+                            <th>MarkingSalary</th>
+                            <th>ReMarkingSalary</th>
+                            <th>OutPartySalary</th>
+                            <th>TotalSalary</th>
                         </tr>
                     </thead>
-                    <tbody id="withdraw-body">
-                        <tr><td colspan="3" style="text-align:center; color:gray;">No withdraw history</td></tr>
-                    </tbody>
+                    <tbody id="entries-body"></tbody>
+                    <tfoot>
+                        <tr id="total-row">
+                            <th colspan="2">TOTAL</th>
+                            <th id="t-active">0</th>
+                            <th id="t-marking">0</th>
+                            <th id="t-remarking">0</th>
+                            <th id="t-outparty">0</th>
+                            <th id="t-activeSalary">0.00</th>
+                            <th id="t-markingSalary">0.00</th>
+                            <th id="t-remarkingSalary">0.00</th>
+                            <th id="t-outpartySalary">0.00</th>
+                            <th id="t-totalSalary">0.00</th>
+                        </tr>
+                    </tfoot>
                 </table>
             </div>
         </div>
 
 
-    </div>
+
+            <!-- Update Profile -->
+            <div id="update-profile" class="section card card-white" style="display:none;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h2>Update Profile</h2>
+                    <button class="logout-btn" onclick="showSection('dashboard')">⬅ Back</button>
+                </div>
+                <div class="form-group">
+                    <label>User name:</label>
+                    <input type="text" id="username">
+                    <label>New Password:</label>
+                    <input type="password" id="password">
+                </div>
+                <button class="update-btn" onclick="updateProfile()">🔒 Update Profile</button>
+            </div>
+            <!-- Manage Salary -->
+            <div id="manage-salary" class="section card" style="display:none;">
+                <h2>Manage Salary & Summary</h2>
+                <button class="logout-btn" onclick="showSection('dashboard')">⬅ Back</button>
+                <div class="table-wrapper">
+                    <table id="salary-summary">
+                        <thead>
+                            <tr>
+                                <th>SR.NO</th>
+                                <th>NAME (Full Name)</th>
+                                <th>SALARY (Total)</th>
+                                <th>WorkDay</th>
+                                <th>NetSalary</th>
+                                <th>Withdrw</th>
+                                <th>BankSalary</th>
+                                <th>Pay In Cash</th>
+                            </tr>
+                        </thead>
+                        <tbody id="salary-body"></tbody>
+                    </table>
+
+                    <!-- ✅ Withdraw History Box (inside Manage Salary only) -->
+                    <div class="card" style="margin-top:20px;">
+                        <h3 style="color:#075e54;">💳 Withdraw History</h3>
+                        <table id="withdraw-history">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Date & Time</th>
+                                    <th>Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody id="withdraw-body">
+                                <tr><td colspan="3" style="text-align:center; color:gray;">No withdraw history</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
 
     <script>
         window.onload = function () {
