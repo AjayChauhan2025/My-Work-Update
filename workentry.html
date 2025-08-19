@@ -415,6 +415,7 @@
             let remarking = +document.getElementById('remarking').value.trim() || 0;
             let outparty = +document.getElementById('outparty').value.trim() || 0;
 
+            // ❌ All pcs zero → block
             if (active === 0 && marking === 0 && remarking === 0 && outparty === 0) {
                 alert("Please enter your pcs");
                 return;
@@ -440,17 +441,22 @@
                 .get()
                 .then(snapshot => {
                     if (!snapshot.empty) {
-                        // 🔄 If entry exists → Update
-                        let docId = snapshot.docs[0].id;
-                        db.collection("workEntries").doc(docId).update(entry)
-                            .then(() => {
-                                alert("✏️ Entry Updated Successfully!");
-                                resetForm(); // clear inputs
-                            })
-                            .catch(error => {
-                                console.error("Error updating entry: ", error);
-                                alert("❌ Error updating entry. Check console.");
-                            });
+                        // 🔄 If entry exists → ask before update
+                        let confirmUpdate = confirm("આ તારીખની entry પહેલેથી save છે. શું entry સુધારવી છે?");
+                        if (confirmUpdate) {
+                            let docId = snapshot.docs[0].id;
+                            db.collection("workEntries").doc(docId).update(entry)
+                                .then(() => {
+                                    alert("✏️ Entry Updated Successfully!");
+                                    resetForm(); // clear inputs
+                                })
+                                .catch(error => {
+                                    console.error("Error updating entry: ", error);
+                                    alert("❌ Error updating entry. Check console.");
+                                });
+                        } else {
+                            alert("⚠️ Entry update રદ્દ કરવામાં આવી છે.");
+                        }
                     } else {
                         // ➕ If no entry → Add new
                         db.collection("workEntries").add(entry)
@@ -477,6 +483,7 @@
             document.getElementById('remarking').value = "";
             document.getElementById('outparty').value = "";
         }
+
 
 
 
@@ -613,8 +620,8 @@
 
 
         function updateProfile() {
-            let newName = document.getElementById("newFullName").value.trim();
-            let newPassword = document.getElementById("newPassword").value.trim();
+            let newUsername = document.getElementById("username").value.trim();
+            let newPassword = document.getElementById("password").value.trim();
             let currentUser = JSON.parse(localStorage.getItem("loggedUser") || "null");
 
             if (!currentUser) {
@@ -622,30 +629,35 @@
                 return;
             }
 
-            if (!newName || !newPassword) {
-                alert("નવું નામ અને પાસવર્ડ નાખો.");
+            if (!newUsername || !newPassword) {
+                alert("નવું યૂઝરનામ અને પાસવર્ડ નાખો.");
                 return;
             }
 
             let users = JSON.parse(localStorage.getItem("users") || "[]");
 
-            // old username match
+            // match by old username
             let index = users.findIndex(u => u.username === currentUser.username);
             if (index !== -1) {
-                users[index].fullname = newName;
+                // ✅ માત્ર username અને password અપડેટ કરો
+                users[index].username = newUsername;
                 users[index].password = newPassword;
 
-                // update logged user too
+                // loggedUser ને પણ અપડેટ કરો
                 localStorage.setItem("loggedUser", JSON.stringify(users[index]));
                 localStorage.setItem("users", JSON.stringify(users));
 
-                document.getElementById("empName").value = newName;
+                // form માં નવું username બતાવવા માટે
+                document.getElementById("empName").value = users[index].fullname; // fullname એજ રાખવું
+                document.getElementById("usernameDisplay").innerText = newUsername; // જો display કરો તો
 
-                alert("✅ Profile successfully updated!");
+                alert("✅ Username અને Password સફળતાપૂર્વક અપડેટ થયા!");
             } else {
                 alert("યૂઝર અપડેટ થયો નહિ.");
             }
         }
+
+
         function loadSalarySummary() {
             let loggedUser = JSON.parse(localStorage.getItem('loggedUser') || '{}');
             let userName = loggedUser.fullname || loggedUser.fullName || loggedUser.username;

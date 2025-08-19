@@ -312,7 +312,7 @@
                                 <th>Withdrw</th>
                                 <th>BankSalary</th>
                                 <th>Pay In Cash</th>
-                                <th>BAKI</th>   <!-- NEW -->
+                                
                             </tr>
                         </thead>
 
@@ -368,37 +368,56 @@
             let tbody = document.getElementById('salary-body');
             tbody.innerHTML = '';
 
-            const snapshot = await getDocs(collection(db, "workEntries"));
-            let grouped = {};
+            try {
+                const snapshot = await getDocs(collection(db, "workEntries"));
+                let grouped = {};
 
-            snapshot.forEach(docSnap => {
-                let e = docSnap.data();
-                if (!grouped[e.name]) grouped[e.name] = { totalSalary: 0 };
-                grouped[e.name].totalSalary += e.total || 0;
-            });
+                snapshot.forEach(docSnap => {
+                    let e = docSnap.data();
+                    if (!grouped[e.name]) grouped[e.name] = { totalSalary: 0 };
+                    grouped[e.name].totalSalary += e.total || 0;
+                });
 
-            let sr = 1;
-            Object.keys(grouped).forEach(name => {
-                let g = grouped[name];
+                let sr = 1;
+                Object.keys(grouped).forEach(name => {
+                    let g = grouped[name];
 
-                tbody.innerHTML += `
-        <tr data-name="${name}">
-            <td>${sr++}</td>
-            <td>${name}</td>
-            <td>${g.totalSalary.toFixed(2)}</td>
-            <td><input type="number" value="0" oninput="updateBaki(this)"></td>
-            <td class="net-salary">0.00</td>
-            <td><input type="number" value="0" oninput="updateBaki(this)"></td>
-            <td><input type="number" value="0" oninput="updateBaki(this)"></td>
-            <td class="cash">0.00</td>
-            <td class="baki">${g.totalSalary.toFixed(2)}</td>
-        </tr>`;
-            });
+                    tbody.innerHTML += `
+<tr data-name="${name}">
+    <td>${sr++}</td>
+    <td>${name}</td>
+    <td>${g.totalSalary.toFixed(2)}</td>
+    <td><input type="number" value="0" oninput="updateBaki(this)"></td>
+    <td class="net-salary">0.00</td>
+    <td><input type="number" value="0" oninput="updateBaki(this)"></td>
+    <td><input type="number" value="0" oninput="updateBaki(this)"></td>
+    <td class="cash">0.00</td>
+</tr>`;
+                });
+
+                // ✅ Firestore payments data load
+                const paymentsSnap = await getDocs(collection(db, "payments"));
+                paymentsSnap.forEach(docSnap => {
+                    let p = docSnap.data();
+                    let row = document.querySelector(`tr[data-name="${p.name}"]`);
+                    if (row) {
+                        row.cells[3].querySelector('input').value = p.workDays || 0;
+                        row.cells[5].querySelector('input').value = p.withdrw || 0;
+                        row.cells[6].querySelector('input').value = p.bank || 0;
+                        row.querySelector('.net-salary').textContent = (p.netSalary || 0).toFixed(2);
+                        row.querySelector('.cash').textContent = (p.payInCash || 0).toFixed(2);
+                    }
+                });
+
+            } catch (err) {
+                console.error("Error loading salary summary:", err);
+            }
         }
 
 
 
-        function updateBaki(input) {
+
+        async function updateBaki(input) {
             let row = input.closest('tr');
             let name = row.dataset.name;
             let totalSalary = parseFloat(row.cells[2].textContent) || 0;
@@ -408,18 +427,30 @@
             let withdrw = parseFloat(row.cells[5].querySelector('input').value) || 0;
             let bank = parseFloat(row.cells[6].querySelector('input').value) || 0;
 
+            // Net Salary = per day × work days
             let netSalary = salaryPerDay * workDays;
             row.querySelector('.net-salary').textContent = netSalary.toFixed(2);
+
+            // Pay In Cash = Net - Withdraw - Bank
             let payInCash = netSalary - withdrw - bank;
             row.querySelector('.cash').textContent = payInCash.toFixed(2);
 
-            let baki = totalSalary - withdrw - bank - payInCash;
-            row.querySelector('.baki').textContent = baki.toFixed(2);
-
-            let payments = JSON.parse(localStorage.getItem('payments') || '{}');
-            payments[name] = { workDays, withdrw, bank };
-            localStorage.setItem('payments', JSON.stringify(payments));
+            // ✅ Firestore update
+            try {
+                await setDoc(doc(db, "payments", name), {
+                    name,
+                    workDays,
+                    withdrw,
+                    bank,
+                    netSalary,
+                    payInCash
+                });
+                console.log("Payment updated for", name);
+            } catch (err) {
+                console.error("Error updating payment:", err);
+            }
         }
+
 
 
         /* ---- User Manage ---- */
