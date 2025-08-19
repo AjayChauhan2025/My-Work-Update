@@ -450,13 +450,16 @@
                 });
             }
             function editUser(username) {
-                let u = users.find(x => x.username === username);
-                if (u) {
-                    document.getElementById("username").value = u.username;
-                    document.getElementById("fullname").value = u.fullname;
-                    document.getElementById("password").value = u.password;
-                }
+                db.collection("users").doc(username).get().then(doc => {
+                    if (doc.exists) {
+                        let u = doc.data();
+                        document.getElementById("username").value = u.username;
+                        document.getElementById("fullname").value = u.fullname;
+                        document.getElementById("password").value = u.password;
+                    }
+                });
             }
+
             function deleteUser(username) {
                 if (confirm("Delete user?")) {
                     db.collection("users").doc(username).delete().then(() => {
@@ -541,13 +544,18 @@
             function fillUserDropdown() {
                 let dropdown = document.getElementById("filterUserDropdown");
                 dropdown.innerHTML = '<option value="">-- Select User --</option>';
-                users.forEach(u => {
-                    let opt = document.createElement("option");
-                    opt.value = u.fullname || u.username;   // ✅ fullname save karo
-                    opt.textContent = u.fullname || u.username;
-                    dropdown.appendChild(opt);
+
+                db.collection("users").get().then(snapshot => {
+                    snapshot.forEach(doc => {
+                        let u = doc.data();
+                        let opt = document.createElement("option");
+                        opt.value = u.fullname || u.username;
+                        opt.textContent = u.fullname || u.username;
+                        dropdown.appendChild(opt);
+                    });
                 });
             }
+
 
             fillUserDropdown();
 
