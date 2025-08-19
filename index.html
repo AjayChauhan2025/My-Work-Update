@@ -5,11 +5,23 @@
     <title>Login</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <!-- Firebase SDK -->
+    <!-- Firebase v11 SDK -->
     <script src="https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js"></script>
 
     <style>
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(-45deg, #2d6cdf, #6a5acd, #20b2aa, #ff7f50);
+            background-size: 400% 400%;
+            animation: gradientBG 12s ease infinite;
+        }
+
         @keyframes gradientBG {
             0% {
                 background-position: 0% 50%;
@@ -22,18 +34,6 @@
             100% {
                 background-position: 0% 50%;
             }
-        }
-
-        body {
-            margin: 0;
-            font-family: 'Segoe UI', sans-serif;
-            height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: linear-gradient(-45deg, #2d6cdf, #6a5acd, #20b2aa, #ff7f50);
-            background-size: 400% 400%;
-            animation: gradientBG 12s ease infinite;
         }
 
         .login-box {
@@ -108,7 +108,10 @@
         <div class="error" id="errorMsg"></div>
     </div>
 
-    <script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+        import { getFirestore, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+
         // 🔹 Firebase config
         const firebaseConfig = {
             apiKey: "AIzaSyBcevmTwJ7T6xid6s-4csUm4UiFKUn7q_Q",
@@ -119,9 +122,9 @@
             appId: "1:521466697898:web:071cb3372c2d686ead98d3"
         };
 
-        // 🔹 Init Firebase
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
+        // 🔹 Init Firebase + Firestore
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
 
         async function login() {
             let uname = document.getElementById("username").value.trim();
@@ -131,10 +134,10 @@
 
             if (!uname || !pass) {
                 errorMsg.textContent = "કૃપા કરીને યુઝરનેમ અને પાસવર્ડ નાખો.";
-                return false;
+                return;
             }
 
-            // 🔑 Admin hardcoded login
+            // Admin hardcoded login
             if (uname === "admin" && pass === "admin") {
                 let user = { username: "admin", fullname: "Administrator" };
                 localStorage.setItem("loggedUser", JSON.stringify(user));
@@ -142,26 +145,32 @@
                 return;
             }
 
-            // 🔑 Firestore users check
-            db.collection("users").where("username", "==", uname).where("password", "==", pass)
-                .get()
-                .then(snapshot => {
-                    if (snapshot.empty) {
-                        errorMsg.textContent = "યૂઝર મળ્યો નહીં. ફરીથી લોગિન કરો.";
-                        return;
-                    }
+            try {
+                const q = query(
+                    collection(db, "users"),
+                    where("username", "==", uname),
+                    where("password", "==", pass)
+                );
+                const querySnapshot = await getDocs(q);
 
-                    snapshot.forEach(doc => {
-                        let user = doc.data();
-                        localStorage.setItem("loggedUser", JSON.stringify(user));
-                        window.location.href = "workentry.html";
-                    });
-                })
-                .catch(err => {
-                    console.error("Login Error:", err);
-                    errorMsg.textContent = "Login error. Check console.";
+                if (querySnapshot.empty) {
+                    errorMsg.textContent = "યૂઝર મળ્યો નહીં. ફરીથી લોગિન કરો.";
+                    return;
+                }
+
+                querySnapshot.forEach((doc) => {
+                    let user = doc.data();
+                    localStorage.setItem("loggedUser", JSON.stringify(user));
+                    window.location.href = "workentry.html";
                 });
+            } catch (err) {
+                console.error("Login Error:", err);
+                errorMsg.textContent = "Login error. Check console.";
+            }
         }
+
+        // expose function to global scope
+        window.login = login;
     </script>
 </body>
 </html>
