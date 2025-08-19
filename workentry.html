@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js"></script>
     <title>Work Entry Dashboard</title>
     <style>
         body {
@@ -117,6 +119,7 @@
             background: #34b7f1;
             color: white;
         }
+
         .table-wrapper {
             overflow-x: auto; /* 🔑 allows horizontal scroll */
             -webkit-overflow-scrolling: touch; /* smooth scrolling on mobile */
@@ -145,7 +148,7 @@
                 word-wrap: break-word; /* 👈 text wrap thashe */
             }
 
-                /* Column widths */
+        /* Column widths */
         /* Example: specific column widths */
         #salary-summary th:nth-child(1),
         #salary-summary td:nth-child(1) {
@@ -356,6 +359,17 @@
         </div>
 
     <script>
+
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBcevmTwJ7T6xid6s-4csUm4UiFKUn7q_Q",
+            authDomain: "my-work-update.firebaseapp.com",
+            projectId: "my-work-update",
+            storageBucket: "my-work-update.firebasestorage.app",
+            messagingSenderId: "521466697898",
+            appId: "1:521466697898:web:071cb3372c2d686ead98d3"
+        };
+
         window.onload = function () {
             let loggedUser = JSON.parse(localStorage.getItem('loggedUser') || '{}');
 
@@ -394,21 +408,15 @@
             let name = document.getElementById('name').value.trim();
             let date = document.getElementById('date').value;
 
-            let activeInput = document.getElementById('active').value.trim();
-            let markingInput = document.getElementById('marking').value.trim();
-            let remarkingInput = document.getElementById('remarking').value.trim();
-            let outpartyInput = document.getElementById('outparty').value.trim();
+            let active = +document.getElementById('active').value.trim() || 0;
+            let marking = +document.getElementById('marking').value.trim() || 0;
+            let remarking = +document.getElementById('remarking').value.trim() || 0;
+            let outparty = +document.getElementById('outparty').value.trim() || 0;
 
-            // 1. બધા fields ખાલી છે
-            if (activeInput === '' && markingInput === '' && remarkingInput === '' && outpartyInput === '') {
+            if (active === 0 && marking === 0 && remarking === 0 && outparty === 0) {
                 alert("Please enter your pcs");
                 return;
             }
-
-            let active = +activeInput || 0;
-            let marking = +markingInput || 0;
-            let remarking = +remarkingInput || 0;
-            let outparty = +outpartyInput || 0;
 
             let rates = { active: 2.6, marking: 2.3, remarking: 3.0, outparty: 2.6 };
             let activeSalary = active * rates.active;
@@ -417,42 +425,29 @@
             let outpartySalary = outparty * rates.outparty;
             let totalSalary = activeSalary + markingSalary + remarkingSalary + outpartySalary;
 
-            let entries = JSON.parse(localStorage.getItem('workEntries') || '[]');
-
-
-            // 2. Duplicate check (same name + date)
-            let existingIndex = entries.findIndex(e => e.date === date && e.name === name);
-            if (existingIndex !== -1) {
-                let confirmUpdate = confirm("આ તારીખની entry પહેલેથી save છે. શું entry સુધારવી છે?");
-                if (!confirmUpdate) {
-                    return; // save ન થાય
-                } else {
-                    entries.splice(existingIndex, 1); // જૂની entry delete
-                }
-            }
-
-            // 3. Save entry
             let entry = {
                 name, date, active, marking, remarking, outparty,
-                activeSalary, markingSalary, remarkingSalary, outpartySalary, total: totalSalary
+                activeSalary, markingSalary, remarkingSalary, outpartySalary, total: totalSalary,
+                createdAt: new Date()
             };
 
-            entries.push(entry);
-            localStorage.setItem('workEntries', JSON.stringify(entries));  // <-- FIX: "workEntries"
-
-
-            alert("✅ Entry Saved!");
+            // 🔥 Save in Firestore
+            db.collection("workEntries").add(entry)
+                .then(() => {
+                    alert("✅ Entry Saved to Firestore!");
+                })
+                .catch(error => {
+                    console.error("Error saving entry: ", error);
+                    alert("❌ Error saving entry. Check console.");
+                });
         }
+
 
 
         function showEntries() {
             showSection('view-entry');
             let loggedUser = JSON.parse(localStorage.getItem('loggedUser') || '{}');
-            let entries = JSON.parse(localStorage.getItem('workEntries') || '[]');
-
-            // 🔑 Filter only current user's entries
             let userName = loggedUser.fullname || loggedUser.fullName || loggedUser.username;
-            entries = entries.filter(e => e.name === userName);
 
             let tbody = document.getElementById('entries-body');
             tbody.innerHTML = '';
@@ -461,53 +456,79 @@
                 activeSalary: 0, markingSalary: 0, remarkingSalary: 0, outpartySalary: 0, totalSalary: 0
             };
 
-            entries.forEach((e, i) => {
-                tbody.innerHTML += `
-            <tr>
-                <td>${i + 1}</td>
-                <td>${e.date}</td>
-                <td>${e.active}</td>
-                <td>${e.marking}</td>
-                <td>${e.remarking}</td>
-                <td>${e.outparty}</td>
-                <td>${e.activeSalary.toFixed(2)}</td>
-                <td>${e.markingSalary.toFixed(2)}</td>
-                <td>${e.remarkingSalary.toFixed(2)}</td>
-                <td>${e.outpartySalary.toFixed(2)}</td>
-                <td>${e.total.toFixed(2)}</td>
-            </tr>
-        `;
-                total.active += e.active;
-                total.marking += e.marking;
-                total.remarking += e.remarking;
-                total.outparty += e.outparty;
-                total.activeSalary += e.activeSalary;
-                total.markingSalary += e.markingSalary;
-                total.remarkingSalary += e.remarkingSalary;
-                total.outpartySalary += e.outpartySalary;
-                total.totalSalary += e.total;
-            });
+            // 🔥 Fetch from Firestore
+            db.collection("workEntries").where("name", "==", userName).orderBy("date")
+                .get()
+                .then(snapshot => {
+                    let i = 1;
+                    snapshot.forEach(doc => {
+                        let e = doc.data();
+                        tbody.innerHTML += `
+                <tr>
+                    <td>${i++}</td>
+                    <td>${e.date}</td>
+                    <td>${e.active}</td>
+                    <td>${e.marking}</td>
+                    <td>${e.remarking}</td>
+                    <td>${e.outparty}</td>
+                    <td>${e.activeSalary.toFixed(2)}</td>
+                    <td>${e.markingSalary.toFixed(2)}</td>
+                    <td>${e.remarkingSalary.toFixed(2)}</td>
+                    <td>${e.outpartySalary.toFixed(2)}</td>
+                    <td>${e.total.toFixed(2)}</td>
+                </tr>`;
 
-            document.getElementById('t-active').textContent = total.active;
-            document.getElementById('t-marking').textContent = total.marking;
-            document.getElementById('t-remarking').textContent = total.remarking;
-            document.getElementById('t-outparty').textContent = total.outparty;
-            document.getElementById('t-activeSalary').textContent = total.activeSalary.toFixed(2);
-            document.getElementById('t-markingSalary').textContent = total.markingSalary.toFixed(2);
-            document.getElementById('t-remarkingSalary').textContent = total.remarkingSalary.toFixed(2);
-            document.getElementById('t-outpartySalary').textContent = total.outpartySalary.toFixed(2);
-            document.getElementById('t-totalSalary').textContent = total.totalSalary.toFixed(2);
+                        total.active += e.active;
+                        total.marking += e.marking;
+                        total.remarking += e.remarking;
+                        total.outparty += e.outparty;
+                        total.activeSalary += e.activeSalary;
+                        total.markingSalary += e.markingSalary;
+                        total.remarkingSalary += e.remarkingSalary;
+                        total.outpartySalary += e.outpartySalary;
+                        total.totalSalary += e.total;
+                    });
+
+                    // Totals update
+                    document.getElementById('t-active').textContent = total.active;
+                    document.getElementById('t-marking').textContent = total.marking;
+                    document.getElementById('t-remarking').textContent = total.remarking;
+                    document.getElementById('t-outparty').textContent = total.outparty;
+                    document.getElementById('t-activeSalary').textContent = total.activeSalary.toFixed(2);
+                    document.getElementById('t-markingSalary').textContent = total.markingSalary.toFixed(2);
+                    document.getElementById('t-remarkingSalary').textContent = total.remarkingSalary.toFixed(2);
+                    document.getElementById('t-outpartySalary').textContent = total.outpartySalary.toFixed(2);
+                    document.getElementById('t-totalSalary').textContent = total.totalSalary.toFixed(2);
+                });
         }
+
 
 
 
         function deleteAllEntries() {
-            if (confirm("❌ Delete all entries?")) {
-                localStorage.removeItem('workEntries');
-                showEntries();
-                alert("🗑 All entries deleted!");
-            }
+            if (!confirm("⚠️ Are you sure you want to delete all entries?")) return;
+
+            let loggedUser = JSON.parse(localStorage.getItem('loggedUser') || '{}');
+            let userName = loggedUser.fullname || loggedUser.fullName || loggedUser.username;
+
+            db.collection("workEntries").where("name", "==", userName).get()
+                .then(snapshot => {
+                    let batch = db.batch();
+                    snapshot.forEach(doc => {
+                        batch.delete(doc.ref);
+                    });
+                    return batch.commit();
+                })
+                .then(() => {
+                    alert("✅ All entries deleted from Firestore!");
+                    showEntries(); // refresh table
+                })
+                .catch(error => {
+                    console.error("Error deleting entries: ", error);
+                    alert("❌ Error deleting entries. Check console.");
+                });
         }
+
 
         function updateProfile() {
             let newName = document.getElementById("newFullName").value.trim();
@@ -678,7 +699,9 @@
                 tableBody.appendChild(tr);
             });
         }
-
+        // Initialize Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
 
 
 
