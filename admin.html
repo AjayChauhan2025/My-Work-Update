@@ -7,54 +7,64 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <style>
+        /* 🌟 Base Page Setup */
         body {
             font-family: Arial, sans-serif;
             background-color: #e5ddd5;
             margin: 0;
+            padding: 0;
+            font-size: 14px; /* Base font size મોટું */
+            width: 100vw; /* Full width */
+            height: 100vh; /* Full height */
             display: flex;
             justify-content: center;
             align-items: flex-start;
-            min-height: 100vh;
-            padding: 20px;
+           
         }
 
+        /* 🌟 Main Container */
         .container {
             background: #fff;
-            width: 95%;
-            max-width: 1100px;
-            border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            overflow: hidden;
+            width: 100%;
+            height: 100%;
+            max-width: 1920px; /* મોટો monitor support */
+            border-radius: 0; /* Full screen look */
+            box-shadow: none;
+            display: flex;
+            flex-direction: column;
+           
         }
 
+        /* 🌟 Header */
         .header {
             text-align: center;
-            font-size: 28px;
+            font-size: 26px; /* Heading મોટું */
             font-weight: bold;
-            padding: 20px;
+            padding: 24px;
             background: #eae2dc;
-            border-radius: 10px 10px 0 0;
+            border-bottom: 3px solid #ccc;
         }
 
+        /* 🌟 Navigation Tabs */
         .tab-buttons {
             display: flex;
             justify-content: center;
-            gap: 8px;
+            gap: 12px;
             background: #2d6cdf;
-            padding: 10px;
+            padding: 16px;
             flex-wrap: wrap;
         }
 
             .tab-buttons button {
-                padding: 10px 16px;
+                padding: 14px 24px;
                 border: none;
                 cursor: pointer;
                 background: #4a82e3;
                 color: white;
-                border-radius: 6px;
+                border-radius: 8px;
                 font-weight: bold;
                 transition: 0.2s;
-                font-size: 14px;
+                font-size: 17px;
             }
 
                 .tab-buttons button.active {
@@ -69,80 +79,86 @@
                 background: #c82333 !important;
             }
 
+        /* 🌟 Card Section */
         .card {
+            flex: 1; /* Auto height */
             background: white;
-            padding: 20px;
-            margin: 20px;
-            border-radius: 6px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            padding: 24px;
+            margin: 0;
+            border-radius: 0;
+            overflow: auto; /* Content scrollable */
         }
 
+        /* 🌟 Inputs */
         input, select {
-            padding: 8px;
-            margin: 6px 4px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
+            padding: 12px;
+            margin: 10px 8px;
+            border: 1px solid #bbb;
+            border-radius: 6px;
+            font-size: 17px;
         }
 
+        /* 🌟 Tables */
         table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 14px;
-            min-width: 600px;
+            font-size: 17px;
         }
 
         th, td {
             border: 1px solid #ccc;
-            padding: 6px;
+            padding: 12px;
             text-align: center;
         }
 
-        /* 🌟 Default table header (blue) */
+        /* Default table header */
         th {
             background: #2d6cdf;
             color: white;
+            font-size: 17px;
+            padding: 14px;
         }
 
-        /* 🌟 Special styling for Salary Table */
+        /* Special Salary Table Header */
         #salary-summary thead th {
-            background: #005b55; /* Dark Green */
+            background: #005b55;
             color: white;
             font-weight: bold;
-            padding: 10px;
+            padding: 16px;
+            font-size: 17px;
         }
 
-        /* Rounded header for salary table */
-        #salary-summary thead tr:first-child th:first-child {
-            border-top-left-radius: 8px;
-        }
-
-        #salary-summary thead tr:first-child th:last-child {
-            border-top-right-radius: 8px;
-        }
-
+        /* Row styling */
         tbody tr:nth-child(odd) {
             background: #fff;
         }
 
         tbody tr:nth-child(even) {
-            background: #f9faff;
+            background: #f4f7ff;
         }
 
+        /* Footer row */
         tfoot tr {
             font-weight: bold;
             background: #ffe599;
+            font-size: 17px;
         }
 
+        /* 🌟 Responsive Table */
         .table-container {
-            overflow-x: auto;
+            width: 100%;
+            overflow-x: auto; /* Horizontal scroll only if needed */
         }
 
+        /* 🌟 Buttons */
         .btn {
-            padding: 6px 10px;
+            padding: 10px 18px;
             border: none;
-            border-radius: 4px;
+            border-radius: 6px;
             cursor: pointer;
-            margin: 2px;
+            margin: 6px;
+            font-size: 16px;
+            font-weight: bold;
         }
 
         .btn-green {
@@ -174,6 +190,7 @@
             opacity: 0.9;
         }
 
+        /* 🌟 Sections */
         .section {
             display: none;
         }
@@ -184,12 +201,15 @@
 
         /* 🌟 Inputs inside salary table */
         #salary-summary input {
-            width: 80px;
-            padding: 4px;
+            width: 120px;
+            padding: 8px;
             text-align: center;
-            border: 1px solid #bbb;
-            border-radius: 4px;
+            border: 1px solid #aaa;
+            border-radius: 6px;
+            font-size: 16px;
         }
+
+
     </style>
 </head>
 <body>
@@ -296,31 +316,45 @@
             </div>
         </div>
 
-            <!-- SALARY SECTION -->
-            <div id="salaryManage" class="section">
-                <div class="card">
-                    <h2>Manage Salary & Summary</h2>
-                    <button class="logout-btn" onclick="showSection('dashboard')">⬅ Back</button>
-                    <table id="salary-summary">
-                        <thead>
-                            <tr>
-                                <th>SR.NO</th>
-                                <th>NAME (Full Name)</th>
-                                <th>SALARY (Total)</th>
-                                <th>WorkDay</th>
-                                <th>NetSalary</th>
-                                <th>Withdrw</th>
-                                <th>BankSalary</th>
-                                <th>Pay In Cash</th>
-                                
-                            </tr>
-                        </thead>
+        <!-- SALARY SECTION -->
+        <div id="salaryManage" class="section">
+            <div class="card">
+                <h2>Manage Salary & Summary</h2>
+                <button class="logout-btn" onclick="showSection('dashboard')">⬅ Back</button>
 
-                        <tbody id="salary-body"></tbody>
-                    </table>
-                </div>
+                <table id="salary-summary">
+                    <thead>
+                        <tr>
+                            <th>SR.NO</th>
+                            <th>NAME (Full Name)</th>
+                            <th>SALARY (Total)</th>
+                            <th>WorkDay</th>
+                            <th>NetSalary</th>
+                            <th>Withdrw</th>
+                            <th>BankSalary</th>
+                            <th>Pay In Cash</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="salary-body"></tbody>
+
+                    <!-- FIX TOTAL ROW -->
+                    <tfoot>
+                        <tr style="font-weight: bold; background: #f2f2f2;">
+                            <td colspan="2" style="text-align:right;">TOTAL:</td>
+                            <td id="total-salary">0</td>
+                            <td id="total-workday">0</td>
+                            <td id="total-netsalary">0</td>
+                            <td id="total-withdrw">0</td>
+                            <td id="total-banksalary">0</td>
+                            <td id="total-cash">0</td>
+                        </tr>
+                    </tfoot>
+                </table>
             </div>
         </div>
+
+    </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
@@ -409,12 +443,13 @@
                     }
                 });
 
+                // ✅ Totals update after loading
+                updateTotals();
+
             } catch (err) {
                 console.error("Error loading salary summary:", err);
             }
         }
-
-
 
 
         async function updateBaki(input) {
@@ -446,10 +481,37 @@
                     payInCash
                 });
                 console.log("Payment updated for", name);
+
+                // ✅ Update totals after any change
+                updateTotals();
+
             } catch (err) {
                 console.error("Error updating payment:", err);
             }
         }
+
+
+        // 🔹 Grand Totals Function
+        function updateTotals() {
+            let totalSalary = 0, totalWorkday = 0, totalNet = 0, totalWithdrw = 0, totalBank = 0, totalCash = 0;
+
+            document.querySelectorAll("#salary-body tr").forEach(row => {
+                totalSalary += parseFloat(row.cells[2].innerText) || 0;
+                totalWorkday += parseFloat(row.cells[3].querySelector('input').value) || 0;
+                totalNet += parseFloat(row.querySelector('.net-salary').innerText) || 0;
+                totalWithdrw += parseFloat(row.cells[5].querySelector('input').value) || 0;
+                totalBank += parseFloat(row.cells[6].querySelector('input').value) || 0;
+                totalCash += parseFloat(row.querySelector('.cash').innerText) || 0;
+            });
+
+            document.getElementById("total-salary").innerText = totalSalary.toFixed(2);
+            document.getElementById("total-workday").innerText = totalWorkday;
+            document.getElementById("total-netsalary").innerText = totalNet.toFixed(2);
+            document.getElementById("total-withdrw").innerText = totalWithdrw.toFixed(2);
+            document.getElementById("total-banksalary").innerText = totalBank.toFixed(2);
+            document.getElementById("total-cash").innerText = totalCash.toFixed(2);
+        }
+
 
 
 
@@ -541,21 +603,31 @@
                 let e = docSnap.data();
                 allEntries.push(e);
 
+                // 🔹 Convert YYYY-MM-DD → DD-MM-YYYY
+                let displayDate = e.date;
+                if (e.date) {
+                    let d = new Date(e.date);
+                    let dd = String(d.getDate()).padStart(2, "0");
+                    let mm = String(d.getMonth() + 1).padStart(2, "0");
+                    let yyyy = d.getFullYear();
+                    displayDate = `${dd}-${mm}-${yyyy}`;
+                }
+
                 tbody.innerHTML += `
-          <tr>
-              <td>${e.name}</td>
-              <td>${e.date}</td>
-              <td>${e.active || 0}</td>
-              <td>${e.marking || 0}</td>
-              <td>${e.remarking || 0}</td>
-              <td>${e.outparty || 0}</td>
-              <td>${(e.activeSalary || 0).toFixed(2)}</td>
-              <td>${(e.markingSalary || 0).toFixed(2)}</td>
-              <td>${(e.remarkingSalary || 0).toFixed(2)}</td>
-              <td>${(e.outpartySalary || 0).toFixed(2)}</td>
-              <td>${(e.total || 0).toFixed(2)}</td>
-              <td>📝</td>
-          </tr>`;
+  <tr>
+      <td>${e.name}</td>
+      <td>${displayDate}</td>
+      <td>${e.active || 0}</td>
+      <td>${e.marking || 0}</td>
+      <td>${e.remarking || 0}</td>
+      <td>${e.outparty || 0}</td>
+      <td>${(e.activeSalary || 0).toFixed(2)}</td>
+      <td>${(e.markingSalary || 0).toFixed(2)}</td>
+      <td>${(e.remarkingSalary || 0).toFixed(2)}</td>
+      <td>${(e.outpartySalary || 0).toFixed(2)}</td>
+      <td>${(e.total || 0).toFixed(2)}</td>
+      <td>📝</td>
+  </tr>`;
 
                 tAP += e.active || 0;
                 tMK += e.marking || 0;
@@ -592,6 +664,7 @@
                 document.getElementById("totalSalary").textContent = "Total Salary: ₹0.00";
             }
         }
+
 
 
 

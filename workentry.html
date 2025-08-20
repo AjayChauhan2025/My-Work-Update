@@ -484,17 +484,10 @@
             document.getElementById('outparty').value = "";
         }
 
-
-
-
-
-
-
         function showEntries() {
             showSection('view-entry');
 
             let loggedUser = JSON.parse(localStorage.getItem('loggedUser') || '{}');
-            // 🟢 SAME field use karo je save vakhte kariye che
             let userName = loggedUser.fullname || loggedUser.fullName || loggedUser.username;
 
             console.log("📌 Current User for filter:", userName);
@@ -506,7 +499,7 @@
                 activeSalary: 0, markingSalary: 0, remarkingSalary: 0, outpartySalary: 0, totalSalary: 0
             };
 
-            // 🟢 first test without orderBy
+            // 🔹 Simple query (no orderBy → no index problem)
             db.collection("workEntries")
                 .where("name", "==", userName)
                 .get()
@@ -518,38 +511,69 @@
                         return;
                     }
 
-                    let i = 1;
+                    let entries = [];
                     snapshot.forEach(doc => {
-                        let e = doc.data();
-                        console.log("➡️ Entry:", e);
-
-                        tbody.innerHTML += `
-                    <tr>
-                        <td>${i++}</td>
-                        <td>${e.date || '-'}</td>
-                        <td>${e.active}</td>
-                        <td>${e.marking}</td>
-                        <td>${e.remarking}</td>
-                        <td>${e.outparty}</td>
-                        <td>${(e.activeSalary || 0).toFixed(2)}</td>
-                        <td>${(e.markingSalary || 0).toFixed(2)}</td>
-                        <td>${(e.remarkingSalary || 0).toFixed(2)}</td>
-                        <td>${(e.outpartySalary || 0).toFixed(2)}</td>
-                        <td>${(e.total || 0).toFixed(2)}</td>
-                    </tr>`;
-
-                        total.active += e.active;
-                        total.marking += e.marking;
-                        total.remarking += e.remarking;
-                        total.outparty += e.outparty;
-                        total.activeSalary += e.activeSalary;
-                        total.markingSalary += e.markingSalary;
-                        total.remarkingSalary += e.remarkingSalary;
-                        total.outpartySalary += e.outpartySalary;
-                        total.totalSalary += e.total;
+                        entries.push(doc.data());
                     });
 
-                    // Update totals
+                    // 🔹 Sort by date (ascending)
+                    entries.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+                    // 🔹 Find date range (first → last entry)
+                    let startDate = new Date(entries[0].date);
+                    let endDate = new Date(entries[entries.length - 1].date);
+
+                    let i = 1;
+                    for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+                        let currentDate = d.toISOString().split("T")[0]; // YYYY-MM-DD
+
+                        // 🔹 find entry for this date
+                        let e = entries.find(x => x.date === currentDate);
+
+                        // 🔹 convert to dd-mm-yyyy
+                        let dd = String(d.getDate()).padStart(2, '0');
+                        let mm = String(d.getMonth() + 1).padStart(2, '0');
+                        let yyyy = d.getFullYear();
+                        let displayDate = `${dd}-${mm}-${yyyy}`;
+
+                        if (e) {
+                            tbody.innerHTML += `
+<tr>
+    <td>${i++}</td>
+    <td>${displayDate}</td>
+    <td>${e.active}</td>
+    <td>${e.marking}</td>
+    <td>${e.remarking}</td>
+    <td>${e.outparty}</td>
+    <td>${(e.activeSalary || 0).toFixed(2)}</td>
+    <td>${(e.markingSalary || 0).toFixed(2)}</td>
+    <td>${(e.remarkingSalary || 0).toFixed(2)}</td>
+    <td>${(e.outpartySalary || 0).toFixed(2)}</td>
+    <td>${(e.total || 0).toFixed(2)}</td>
+</tr>`;
+
+                            total.active += e.active;
+                            total.marking += e.marking;
+                            total.remarking += e.remarking;
+                            total.outparty += e.outparty;
+                            total.activeSalary += e.activeSalary;
+                            total.markingSalary += e.markingSalary;
+                            total.remarkingSalary += e.remarkingSalary;
+                            total.outpartySalary += e.outpartySalary;
+                            total.totalSalary += e.total;
+
+                        } else {
+                            // 🔹 WEEK OFF row
+                            tbody.innerHTML += `
+<tr style="color:gray; font-style:italic; background:#f9f9f9;">
+    <td>${i++}</td>
+    <td>${displayDate}</td>
+    <td colspan="9" style="text-align:center;">WEEK OFF</td>
+</tr>`;
+                        }
+                    }
+
+                    // 🔹 Totals update
                     document.getElementById('t-active').textContent = total.active;
                     document.getElementById('t-marking').textContent = total.marking;
                     document.getElementById('t-remarking').textContent = total.remarking;
@@ -565,12 +589,6 @@
                     alert("Error fetching entries. Check console for details.");
                 });
         }
-
-
-
-
-
-
 
 
         function deleteAllEntries() {
