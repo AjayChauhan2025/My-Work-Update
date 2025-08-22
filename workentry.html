@@ -637,91 +637,114 @@
 
 
 
-        function updateProfile() {
+        async function updateProfile() {
             let newUsername = document.getElementById("username").value.trim();
             let newPassword = document.getElementById("password").value.trim();
             let currentUser = JSON.parse(localStorage.getItem("loggedUser") || "null");
 
             if (!currentUser) {
-                alert("યૂઝર મળ્યો નહીં.");
+                alert("યૂઝર મળ્યો નથી. ફરીથી login કરો.");
                 return;
             }
-
             if (!newUsername || !newPassword) {
-                alert("નવું યૂઝરનામ અને પાસવર્ડ નાખો.");
+                alert("નવું Username અને Password નાખો.");
                 return;
             }
 
-            let users = JSON.parse(localStorage.getItem("users") || "[]");
+            try {
+                // 🔹 check old record
+                let oldUsername = currentUser.username;
 
-            // match by old username
-            let index = users.findIndex(u => u.username === currentUser.username);
-            if (index !== -1) {
-                // ✅ માત્ર username અને password અપડેટ કરો
-                users[index].username = newUsername;
-                users[index].password = newPassword;
+                // જો username બદલાઈ ગયો હોય તો → નવો doc બનાવવો અને જૂનો delete કરવો
+                if (newUsername !== oldUsername) {
+                    // નવા doc માં save કરો
+                    await db.collection("users").doc(newUsername).set({
+                        username: newUsername,
+                        fullname: currentUser.fullname || "",
+                        password: newPassword
+                    });
 
-                // loggedUser ને પણ અપડેટ કરો
-                localStorage.setItem("loggedUser", JSON.stringify(users[index]));
-                localStorage.setItem("users", JSON.stringify(users));
+                    // જૂનો doc delete કરો
+                    await db.collection("users").doc(oldUsername).delete();
 
-                // form માં નવું username બતાવવા માટે
-                document.getElementById("empName").value = users[index].fullname; // fullname એજ રાખવું
-                document.getElementById("usernameDisplay").innerText = newUsername; // જો display કરો તો
+                    // localStorage અપડેટ
+                    currentUser.username = newUsername;
+                    currentUser.password = newPassword;
+                    localStorage.setItem("loggedUser", JSON.stringify(currentUser));
 
-                alert("✅ Username અને Password સફળતાપૂર્વક અપડેટ થયા!");
-            } else {
-                alert("યૂઝર અપડેટ થયો નહિ.");
+                    alert("✅ Username & Password update થયા (નવું username બનાવાયું).");
+                } else {
+                    // માત્ર password update
+                    await db.collection("users").doc(oldUsername).update({
+                        password: newPassword
+                    });
+
+                    currentUser.password = newPassword;
+                    localStorage.setItem("loggedUser", JSON.stringify(currentUser));
+
+                    alert("✅ Password સફળતાપૂર્વક update થયો.");
+                }
+
+                // Update form fields
+                document.getElementById("username").value = currentUser.username;
+                document.getElementById("password").value = "";
+
+            } catch (err) {
+                console.error("❌ Error updating profile:", err);
+                alert("Error updating profile. Console જુઓ.");
             }
         }
 
 
-        function loadSalarySummary() {
+        async function loadSalarySummary() {
             let loggedUser = JSON.parse(localStorage.getItem('loggedUser') || '{}');
             let userName = loggedUser.fullname || loggedUser.fullName || loggedUser.username;
 
-            db.collection("workEntries")
-                .where("name", "==", userName)
-                .get()
-                .then(snapshot => {
-                    let totalSalary = 0;
-                    snapshot.forEach(doc => {
-                        let e = doc.data();
-                        totalSalary += e.total || 0;
-                    });
+            try {
+                // 🔹 Get total salary from workEntries
+                let snapshot = await db.collection("workEntries")
+                    .where("name", "==", userName).get();
 
-                    let tbody = document.getElementById('salary-body');
-                    tbody.innerHTML = '';
-
-                    let salaryPerDay = totalSalary / 26; // 26 working days
-                    let payments = JSON.parse(localStorage.getItem('payments') || '{}');
-                    let pay = payments[userName] || { workDays: 0, withdrw: 0, bank: 0 };
-                    let netSalary = salaryPerDay * (pay.workDays || 0);
-                    let payInCash = netSalary - (pay.withdrw || 0) - (pay.bank || 0);
-
-                    tbody.innerHTML += `
-                <tr>
-                    <td>1</td>
-                    <td>${userName}</td>
-                    <td>${totalSalary.toFixed(2)}</td>
-                    <td>${pay.workDays}</td>
-                    <td>${netSalary.toFixed(2)}</td>
-                    <td>${pay.withdrw}</td>
-                    <td>${pay.bank}</td>
-                    <td>${payInCash.toFixed(2)}</td>
-                </tr>`;
-                })
-                .catch(error => {
-                    console.error("❌ Error fetching salary summary:", error);
-                    alert("Error fetching salary summary.");
+                let totalSalary = 0;
+                snapshot.forEach(doc => {
+                    let e = doc.data();
+                    totalSalary += e.total || 0;
                 });
+
+                // 🔹 Get payments from Firestore
+                let payDoc = await db.collection("payments").doc(userName).get();
+                let pay = payDoc.exists ? payDoc.data() : { workDays: 0, withdrw: 0, bank: 0 };
+
+                let tbody = document.getElementById('salary-body');
+                tbody.innerHTML = '';
+
+                let salaryPerDay = totalSalary / 26;
+                let netSalary = salaryPerDay * (pay.workDays || 0);
+                let payInCash = netSalary - (pay.withdrw || 0) - (pay.bank || 0);
+
+                tbody.innerHTML += `
+            <tr>
+                <td>1</td>
+                <td>${userName}</td>
+                <td>${totalSalary.toFixed(2)}</td>
+                <td>${pay.workDays}</td>
+                <td>${netSalary.toFixed(2)}</td>
+                <td>${pay.withdrw}</td>
+                <td>${pay.bank}</td>
+                <td>${payInCash.toFixed(2)}</td>
+            </tr>`;
+            } catch (error) {
+                console.error("❌ Error fetching salary summary:", error);
+                alert("Error fetching salary summary.");
+            }
         }
 
 
 
 
 
-        function updateBaki(input) {
+
+        async function updateBaki(input) {
             let row = input.closest('tr');
             let name = row.dataset.name;
             let totalSalary = parseFloat(row.cells[2].textContent) || 0;
@@ -734,69 +757,85 @@
             let netSalary = salaryPerDay * workDays;
             row.querySelector('.net-salary').textContent = netSalary.toFixed(2);
 
-            // ✅ Minus allowed
             let payInCash = netSalary - withdrw - bank;
             row.querySelector('.cash').textContent = payInCash.toFixed(2);
 
-            let payments = JSON.parse(localStorage.getItem('payments') || '{}');
-            if (!payments[name]) payments[name] = { workDays: 0, withdrw: 0, bank: 0, history: [] };
+            try {
+                let docRef = db.collection("payments").doc(name);
+                let docSnap = await docRef.get();
+                let oldData = docSnap.exists ? docSnap.data() : { workDays: 0, withdrw: 0, bank: 0, history: [] };
 
-            // old withdraw value
-            let oldWithdrw = payments[name].withdrw || 0;
+                let oldWithdrw = oldData.withdrw || 0;
+                let history = oldData.history || [];
 
-            // ✅ If withdraw amount increased → add history with Date/Time
-            if (withdrw > oldWithdrw) {
-                let newAmount = withdrw - oldWithdrw;
-                payments[name].history = payments[name].history || [];
-                payments[name].history.push({
-                    date: new Date().toLocaleString(), // ⏰ date+time
-                    amount: newAmount
-                });
+                // ✅ If withdraw increased → add history
+                if (withdrw > oldWithdrw) {
+                    let newAmount = withdrw - oldWithdrw;
+                    history.push({
+                        date: new Date().toLocaleString(),
+                        amount: newAmount
+                    });
+                }
+
+                await docRef.set({
+                    workDays,
+                    withdrw,
+                    bank,
+                    history
+                }, { merge: true });  // 🔹 safe replace
+
+                console.log("✅ Payment updated in Firestore:", name);
+
+            } catch (err) {
+                console.error("❌ Firestore update error:", err);
             }
-
-            payments[name].workDays = workDays;
-            payments[name].withdrw = withdrw;
-            payments[name].bank = bank;
-
-            localStorage.setItem('payments', JSON.stringify(payments));
-
-            // Refresh withdraw history (only for this user)
-            loadWithdrawHistory(name);
         }
 
 
 
-        function loadWithdrawHistory(userName) {
+
+
+        // ✅ User side → પોતાના withdraw history show કરવું
+        async function loadWithdrawHistory(userName) {
             let historyTableBody = document.getElementById("withdraw-body");
             historyTableBody.innerHTML = "";
-
-            let payments = JSON.parse(localStorage.getItem('payments') || '{}');
             let sr = 1;
 
-            if (userName && payments[userName] && payments[userName].history) {
-                payments[userName].history.forEach(h => {
-                    let row = document.createElement("tr");
-                    row.innerHTML = `
-                <td>${sr++}</td>
-                <td>${h.date}</td>
-                <td>${h.amount.toFixed(2)}</td>
-            `;
-                    historyTableBody.appendChild(row);
-                });
-            }
+            try {
+                let docSnap = await db.collection("payments").doc(userName).get();
+                if (docSnap.exists && docSnap.data().history) {
+                    let history = docSnap.data().history;
+                    // latest entry ઉપરથી બતાવવા માટે reverse
+                    history.slice().reverse().forEach(h => {
+                        let row = document.createElement("tr");
+                        row.innerHTML = `
+                    <td>${sr++}</td>
+                    <td>${h.date}</td>
+                    <td>${h.amount.toFixed(2)}</td>
+                `;
+                        historyTableBody.appendChild(row);
+                    });
+                }
 
-            if (historyTableBody.innerHTML === "") {
-                historyTableBody.innerHTML = `<tr><td colspan="3" style="text-align:center;color:gray;">No Withdrawals Yet</td></tr>`;
+                if (historyTableBody.innerHTML === "") {
+                    historyTableBody.innerHTML = `<tr><td colspan="3" style="text-align:center;color:gray;">No Withdrawals Yet</td></tr>`;
+                }
+            } catch (err) {
+                console.error("❌ Error loading withdraw history:", err);
             }
         }
 
 
 
-        function loadWithdrawDetails() {
+
+
+
+        async function loadWithdrawDetails() {
             let tableBody = document.getElementById("withdrawDetailsBody");
             tableBody.innerHTML = "";
 
-            db.collection("payments").get().then(snapshot => {
+            try {
+                let snapshot = await db.collection("payments").get();
                 snapshot.forEach(doc => {
                     let data = doc.data();
                     if (data.history) {
@@ -805,14 +844,22 @@
                             tr.innerHTML = `
                         <td>${doc.id}</td>
                         <td>${h.date}</td>
-                        <td>${h.amount}</td>
+                        <td>${h.amount.toFixed(2)}</td>
                     `;
                             tableBody.appendChild(tr);
                         });
                     }
                 });
-            });
+
+                if (tableBody.innerHTML === "") {
+                    tableBody.innerHTML = `<tr><td colspan="3" style="text-align:center;color:gray;">No Withdrawals Yet</td></tr>`;
+                }
+            } catch (err) {
+                console.error("❌ Error loading withdraw details:", err);
+            }
         }
+
+
 
         // Initialize Firebase
         const app = firebase.initializeApp(firebaseConfig);
