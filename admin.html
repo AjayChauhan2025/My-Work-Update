@@ -282,7 +282,7 @@
                 <table id="detailTable">
                     <thead>
                         <tr>
-                            <th>name</th>
+                            <th>fullname</th>
                             <th>Date</th>
                             <th>Active</th>
                             <th>Marking</th>
@@ -576,84 +576,91 @@
                 loadUsers();
             }
         }
+        // 🔹 Report Load
         async function loadReport() {
-            let selectedUser = document.getElementById("filterUserDropdown").value;
-            let from = document.getElementById("filterFrom").value;
-            let to = document.getElementById("filterTo").value;
+            const selectedUser = document.getElementById("filterUserDropdown").value;
+            const from = document.getElementById("filterFrom").value;
+            const to = document.getElementById("filterTo").value;
 
-            let tbody = document.querySelector("#detailTable tbody");
+            const tbody = document.querySelector("#detailTable tbody");
             tbody.innerHTML = "";
 
             let q = collection(db, "workEntries");
-            let conditions = [];
+            const conditions = [];
 
-            if (selectedUser) conditions.push(where("name", "==", selectedUser));
+            if (selectedUser) conditions.push(where("username", "==", selectedUser));
             if (from) conditions.push(where("date", ">=", from));
             if (to) conditions.push(where("date", "<=", to));
+
             if (conditions.length > 0) q = query(q, ...conditions);
 
             const snapshot = await getDocs(q);
 
-            let tAP = 0, tMK = 0, tRM = 0, tOP = 0,
-                tAPSal = 0, tMKSal = 0, tRMSal = 0, tOPSal = 0,
-                tTotal = 0;
-            let allEntries = [];
+            let tAP = 0, tMK = 0, tRM = 0, tOP = 0;
+            let tAPSal = 0, tMKSal = 0, tRMSal = 0, tOPSal = 0;
+            let tTotal = 0;
+            const allEntries = [];
 
             snapshot.forEach(docSnap => {
-                let e = docSnap.data();
+                const e = docSnap.data();
                 allEntries.push(e);
 
-                // 🔹 Convert YYYY-MM-DD → DD-MM-YYYY
+                // Date format DD-MM-YYYY
                 let displayDate = e.date;
                 if (e.date) {
-                    let d = new Date(e.date);
-                    let dd = String(d.getDate()).padStart(2, "0");
-                    let mm = String(d.getMonth() + 1).padStart(2, "0");
-                    let yyyy = d.getFullYear();
+                    const d = new Date(e.date);
+                    const dd = String(d.getDate()).padStart(2, "0");
+                    const mm = String(d.getMonth() + 1).padStart(2, "0");
+                    const yyyy = d.getFullYear();
                     displayDate = `${dd}-${mm}-${yyyy}`;
                 }
 
                 tbody.innerHTML += `
-  <tr>
-      <td>${e.name}</td>
-      <td>${displayDate}</td>
-      <td>${e.active || 0}</td>
-      <td>${e.marking || 0}</td>
-      <td>${e.remarking || 0}</td>
-      <td>${e.outparty || 0}</td>
-      <td>${(e.activeSalary || 0).toFixed(2)}</td>
-      <td>${(e.markingSalary || 0).toFixed(2)}</td>
-      <td>${(e.remarkingSalary || 0).toFixed(2)}</td>
-      <td>${(e.outpartySalary || 0).toFixed(2)}</td>
-      <td>${(e.total || 0).toFixed(2)}</td>
-      <td>📝</td>
-  </tr>`;
+<tr>
+    <td>${e.fullname || e.name}</td>
+    <td>${displayDate}</td>
+    <td>${e.active || 0}</td>
+    <td>${e.marking || 0}</td>
+    <td>${e.remarking || 0}</td>
+    <td>${e.outparty || 0}</td>
+    <td>${(e.activeSalary || 0).toFixed(2)}</td>
+    <td>${(e.markingSalary || 0).toFixed(2)}</td>
+    <td>${(e.remarkingSalary || 0).toFixed(2)}</td>
+    <td>${(e.outpartySalary || 0).toFixed(2)}</td>
+    <td>${(e.total || 0).toFixed(2)}</td>
+    <td>📝</td>
+</tr>`;
 
+                // Totals
                 tAP += e.active || 0;
                 tMK += e.marking || 0;
                 tRM += e.remarking || 0;
                 tOP += e.outparty || 0;
+
                 tAPSal += e.activeSalary || 0;
                 tMKSal += e.markingSalary || 0;
                 tRMSal += e.remarkingSalary || 0;
                 tOPSal += e.outpartySalary || 0;
+
                 tTotal += e.total || 0;
             });
 
-            // ✅ update totals footer
+            // Update footer totals
             document.getElementById("tAP").textContent = tAP;
             document.getElementById("tMK").textContent = tMK;
             document.getElementById("tRM").textContent = tRM;
             document.getElementById("tOP").textContent = tOP;
+
             document.getElementById("tAPSal").textContent = "₹" + tAPSal.toFixed(2);
             document.getElementById("tMKSal").textContent = "₹" + tMKSal.toFixed(2);
             document.getElementById("tRMSal").textContent = "₹" + tRMSal.toFixed(2);
             document.getElementById("tOPSal").textContent = "₹" + tOPSal.toFixed(2);
             document.getElementById("tTotalSal").textContent = "₹" + tTotal.toFixed(2);
 
-            // ✅ update summary box
+            // Update summary box
             if (allEntries.length > 0) {
-                document.getElementById("todaySalary").textContent = "Today Salary: ₹" + (allEntries[allEntries.length - 1].total || 0).toFixed(2);
+                const lastEntry = allEntries[allEntries.length - 1];
+                document.getElementById("todaySalary").textContent = "Today Salary: ₹" + (lastEntry.total || 0).toFixed(2);
                 document.getElementById("monthlyAvgPieces").textContent = "Monthly Avg Pieces: " + Math.round((tAP + tMK + tRM + tOP) / allEntries.length);
                 document.getElementById("monthlyAvgSalary").textContent = "Monthly Avg Salary: ₹" + (tTotal / allEntries.length).toFixed(2);
                 document.getElementById("totalSalary").textContent = "Total Salary: ₹" + tTotal.toFixed(2);
@@ -665,37 +672,32 @@
             }
         }
 
-
-
-
-
-        // Populate filter user dropdown
+        // 🔹 Populate user dropdown
         async function fillUserDropdown() {
-            let dropdown = document.getElementById("filterUserDropdown");
+            const dropdown = document.getElementById("filterUserDropdown");
             dropdown.innerHTML = '<option value="">-- Select User --</option>';
 
             try {
                 const snapshot = await getDocs(collection(db, "users"));
                 snapshot.forEach(docSnap => {
-                    let u = docSnap.data();
-
-                    // ✅ fullname available હોય તો fullname, નહીંતર username
-                    let displayName = u.fullname && u.fullname.trim() !== "" ? u.fullname : u.username;
-
-                    let opt = document.createElement("option");
-                    opt.value = u.username;   // filter માટે unique value
-                    opt.textContent = displayName; // dropdown માં fullname દેખાશે
+                    const u = docSnap.data();
+                    const opt = document.createElement("option");
+                    opt.value = u.username;               // filter by username
+                    opt.textContent = u.fullname || u.username; // display fullname
                     dropdown.appendChild(opt);
                 });
             } catch (err) {
-                console.error("❌ Error loading users:", err);
+                console.error("Error loading users:", err);
             }
         }
 
-        // ✅ page load પર call કરો
-        document.addEventListener("DOMContentLoaded", fillUserDropdown);
-
-
+        // Page load
+        document.addEventListener("DOMContentLoaded", () => {
+            fillUserDropdown();
+            const today = new Date().toISOString().split("T")[0];
+            document.getElementById("filterFrom").value = today;
+            document.getElementById("filterTo").value = today;
+        });
 
 
 
@@ -715,9 +717,6 @@
             doc.autoTable({ html: '#detailTable', startY: 20 });
             doc.save('Employee_Report.pdf');
         }
-
-
-
 
         loadUsers();
 
