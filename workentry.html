@@ -17,6 +17,8 @@
             padding: 0;
         }
 
+
+
         .main-container {
             max-width: 1100px;
             width: 100%;
@@ -29,6 +31,10 @@
             padding: 20px;
             margin: 10px 0;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            background-image: url("background.png");
+            background-repeat: no-repeat;
+            background-position: center center;
+            background-size: cover;
         }
 
         .card-header {
@@ -64,7 +70,7 @@
                 font-weight: bold;
                 font-size: 14px;
                 margin-bottom: 5px;
-                color: #075e54;
+                color: white;
             }
 
             .form-group input {
@@ -148,6 +154,9 @@
                 text-align: center;
                 word-wrap: break-word; /* 👈 text wrap thashe */
             }
+        h2 {
+            color: white;
+        }
 
         /* Column widths */
         /* Example: specific column widths */
@@ -225,7 +234,7 @@
 
 
         <!-- Dashboard -->
-        <div id="dashboard" class="section card" style="text-align: center;">
+        <div id="dashboard" class="section card" style="text-align: center; color: white;">
             <h2>Dashboard</h2>
             <button class="dashboard-btn" onclick="showSection('add-entry')">➕ Add Entry</button>
             <button class="dashboard-btn" onclick="showEntries()">📄 View Entry</button>
