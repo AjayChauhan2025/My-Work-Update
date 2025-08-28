@@ -2,117 +2,145 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Login</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <!-- Firebase v11 SDK -->
-    <script src="https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js"></script>
-
+    <title>Workflow App Login</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body {
+        body, html {
+            height: 100%;
             margin: 0;
-            font-family: 'Segoe UI', sans-serif;
+            font-family: 'Arial', sans-serif;
+        }
+
+        .screen {
             height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.6s ease;
+            background-image: url("background.png");
+            background-repeat: no-repeat;
+            background-position: center center;
+            background-size: cover;
+        }
+
+        .login-card {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border-radius: 25px;
+            width: 90%;
+            max-width: 380px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+            overflow: hidden;
+            text-align: center;
+            padding-bottom: 30px;
+        }
+
+        .login-header {
+            background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url('background.png');
+            background-size: cover;
+            background-position: center;
+            height: 140px;
+            border-bottom-left-radius: 80px;
+            border-bottom-right-radius: 80px;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(-45deg, #2d6cdf, #6a5acd, #20b2aa, #ff7f50);
-            background-size: 400% 400%;
-            animation: gradientBG 12s ease infinite;
+            color: #fff;
+            font-size: 26px;
+            font-weight: bold;
+            text-shadow: 0 2px 5px rgba(0,0,0,0.5);
         }
 
-        @keyframes gradientBG {
-            0% {
-                background-position: 0% 50%;
-            }
-
-            50% {
-                background-position: 100% 50%;
-            }
-
-            100% {
-                background-position: 0% 50%;
-            }
+        .login-body {
+            margin-top: 25px;
+            padding: 0 30px;
         }
 
-        .login-box {
-            background: rgba(255, 255, 255, 0.18);
-            padding: 65px;
-            width: 450px;
-            border-radius: 25px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
-            backdrop-filter: blur(15px);
-            color: white;
-            transition: all 0.3s ease-in-out;
-            border: 1px solid rgba(255,255,255,0.2);
-        }
-
-            .login-box h2 {
-                text-align: center;
-                margin-bottom: 20px;
-                font-weight: bold;
-                font-size: 35px;
-            }
-
-        .input-group {
-            margin-bottom: 20px;
-        }
-
-            .input-group input {
+            .login-body input {
+                border-radius: 50px;
+                padding: 12px 20px;
+                margin-bottom: 15px;
+                border: 1px solid rgba(255,255,255,0.5);
+                background: rgba(255,255,255,0.1);
+                color: #fff;
+                box-shadow: inset 0 2px 5px rgba(0,0,0,0.2);
                 width: 100%;
-                padding: 18px 22px;
-                border: none;
-                border-radius: 20px;
-                outline: none;
-                font-size: 22px;
-                background: rgba(255,255,255,0.25);
-                color: white;
+                transition: all 0.3s ease;
             }
 
-                .input-group input::placeholder {
-                    color: rgba(255,255,255,0.7);
+                .login-body input:focus {
+                    outline: none;
+                    border-color: #1c6b3c;
+                    box-shadow: 0 0 8px rgba(28,107,60,0.3);
                 }
 
-        .btn {
-            width: 100%;
-            padding: 18px;
-            border: none;
-            border-radius: 20px;
-            background: linear-gradient(135deg, #28a745, #20c997);
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
+        .btn-green {
+            background-color: #1c6b3c;
             color: white;
+            border-radius: 50px;
+            padding: 12px;
+            font-weight: bold;
+            width: 100%;
             transition: all 0.3s ease;
+            border: none;
+        }
+
+            .btn-green:hover {
+                background-color: #14502b;
+            }
+
+        .hidden {
+            display: none;
+        }
+
+        .login-body p {
+            margin-top: 20px;
+            font-size: 14px;
+            color: white;
         }
 
         .error {
-            color: #ffcccc;
-            font-size: 16px;
+            color: #ff6b6b;
             margin-top: 10px;
-            text-align: center;
+            font-size: 14px;
         }
     </style>
 </head>
 <body>
-    <div class="login-box">
-        <h2>Welcome</h2>
-        <div class="input-group">
-            <input type="text" id="username" placeholder="Username">
+
+    <!-- Screen 1 -->
+    <div id="screen1" class="screen">
+        <div style="text-align:center;">
+            <h1 style="color: white; font-size: 36px; font-weight: bold; margin-bottom: 50px; text-shadow: 0 2px 8px rgba(0,0,0,0.5);">
+                The best app for your workflow
+            </h1>
+            <button onclick="showLogin()" style="background: rgba(28,107,60,0.8); color: white; border: none; padding: 20px 60px; font-size: 20px; border-radius: 50px; cursor: pointer;"
+                    onmouseover="this.style.background='rgba(28,107,60,1)';"
+                    onmouseout="this.style.background='rgba(28,107,60,0.8)';">
+                Sign In
+            </button>
         </div>
-        <div class="input-group">
-            <input type="password" id="password" placeholder="Password">
+    </div>
+
+    <!-- Screen 2 -->
+    <div id="screen2" class="screen hidden">
+        <div class="login-card">
+            <div class="login-header">💎 Welcome Back</div>
+            <div class="login-body">
+                <p class="text-center mb-4" style="color:white;">Login to your account</p>
+                <input type="text" id="username" placeholder="User Name" required>
+                <input type="password" id="password" placeholder="Password" required>
+                <button class="btn-green" onclick="login()">Login</button>
+                <div class="error" id="errorMsg"></div>
+            </div>
         </div>
-        <button class="btn" onclick="login()">Login</button>
-        <div class="error" id="errorMsg"></div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
         import { getFirestore, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 
-        // 🔹 Firebase config
         const firebaseConfig = {
             apiKey: "AIzaSyBcevmTwJ7T6xid6s-4csUm4UiFKUn7q_Q",
             authDomain: "my-work-update.firebaseapp.com",
@@ -122,35 +150,34 @@
             appId: "1:521466697898:web:071cb3372c2d686ead98d3"
         };
 
-        // 🔹 Init Firebase + Firestore
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
+        function showLogin() {
+            document.getElementById("screen1").classList.add("hidden");
+            document.getElementById("screen2").classList.remove("hidden");
+        }
+
         async function login() {
-            let uname = document.getElementById("username").value.trim();
-            let pass = document.getElementById("password").value.trim();
-            let errorMsg = document.getElementById("errorMsg");
+            const uname = document.getElementById("username").value.trim();
+            const pass = document.getElementById("password").value.trim();
+            const errorMsg = document.getElementById("errorMsg");
             errorMsg.textContent = "";
 
             if (!uname || !pass) {
-                errorMsg.textContent = "કૃપા કરીને યુઝરનેમ અને પાસવર્ડ નાખો.";
+                errorMsg.textContent = "કૃપા કરીને યૂઝરનામ અને પાસવર્ડ નાખો.";
                 return;
             }
 
-            // Admin hardcoded login
+            // Admin login
             if (uname === "admin" && pass === "admin") {
-                let user = { username: "admin", fullname: "Administrator" };
-                localStorage.setItem("loggedUser", JSON.stringify(user));
+                localStorage.setItem("loggedUser", JSON.stringify({ username: "admin", fullname: "Administrator" }));
                 window.location.href = "admin.html";
                 return;
             }
 
             try {
-                const q = query(
-                    collection(db, "users"),
-                    where("username", "==", uname),
-                    where("password", "==", pass)
-                );
+                const q = query(collection(db, "users"), where("username", "==", uname), where("password", "==", pass));
                 const querySnapshot = await getDocs(q);
 
                 if (querySnapshot.empty) {
@@ -158,19 +185,21 @@
                     return;
                 }
 
-                querySnapshot.forEach((doc) => {
-                    let user = doc.data();
-                    localStorage.setItem("loggedUser", JSON.stringify(user));
-                    window.location.href = "workentry.html";
-                });
+                // Take first matching user
+                const user = querySnapshot.docs[0].data();
+                localStorage.setItem("loggedUser", JSON.stringify(user));
+                window.location.href = "workentry.html";
+
             } catch (err) {
                 console.error("Login Error:", err);
                 errorMsg.textContent = "Login error. Check console.";
             }
         }
 
-        // expose function to global scope
         window.login = login;
+        window.showLogin = showLogin;
+
     </script>
+
 </body>
 </html>
