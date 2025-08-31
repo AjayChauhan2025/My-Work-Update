@@ -232,6 +232,18 @@
             border-radius: 6px;
             margin: 2px;
         }
+        .month-filter label {
+            color: white;
+            font-weight: bold;
+        }
+
+        .month-filter input[type="month"] {
+            color: white; /* લખાણ સફેદ */
+            background: #075e54; /* ડાર્ક બેકગ્રાઉન્ડ */
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            padding: 4px 6px;
+        }
 
     </style>
 </head>
@@ -280,6 +292,11 @@
                     <button class="btn-delete" onclick="deleteAllEntries()">🗑 Delete All Entries</button>
                     <button class="logout-btn" onclick="showSection('dashboard')">⬅ Back</button>
                 </div>
+                <div class="month-filter" style="margin-bottom:10px;">
+                    <label for="monthFilter"><b>Filter by Month:</b></label>
+                    <input type="month" id="monthFilter" onchange="showEntries()" />
+                </div>
+
             </div>
             <div class="table-wrapper">
                 <table id="entries-table">
@@ -311,6 +328,7 @@
                             <th id="t-remarkingSalary">0.00</th>
                             <th id="t-outpartySalary">0.00</th>
                             <th id="t-totalSalary">0.00</th>
+                            <th></th>
                         </tr>
                     </tfoot>
                 </table>
@@ -479,46 +497,85 @@
 
             let tbody = document.getElementById('entries-body');
             tbody.innerHTML = '';
-            let total = {
-                active: 0, marking: 0, remarking: 0, outparty: 0,
-                activeSalary: 0, markingSalary: 0, remarkingSalary: 0, outpartySalary: 0, totalSalary: 0
-            };
+
+            // Month filter
+            let monthFilter = document.getElementById("monthFilter").value;
+            let now = new Date();
+            let currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            if (!monthFilter) monthFilter = currentMonth;
 
             db.collection("workEntries")
                 .where("name", "==", userName)
                 .get()
                 .then(snapshot => {
-                    if (snapshot.empty) {
-                        tbody.innerHTML = `<tr><td colspan="13" style="text-align:center;color:gray;">No entries found</td></tr>`;
-                        return;
-                    }
-
                     let entries = [];
                     snapshot.forEach(doc => {
                         let data = doc.data();
-                        data.id = doc.id; // store docId for edit/delete
-                        entries.push(data);
+                        data.id = doc.id;
+                        let entryMonth = new Date(data.date).toISOString().slice(0, 7);
+                        if (entryMonth === monthFilter) entries.push(data);
                     });
 
-                    // Sort by date ascending
-                    entries.sort((a, b) => new Date(a.date) - new Date(b.date));
+                    if (entries.length === 0) {
+                        tbody.innerHTML = `<tr><td colspan="13" style="text-align:center;color:gray;">No entries for this month</td></tr>`;
+                        resetTotals();
+                        return;
+                    }
 
-                    let i = 1;
+                    // 🔹 Group entries by date
+                    let entriesByDate = {};
                     entries.forEach(e => {
                         let d = new Date(e.date);
-                        let dd = String(d.getDate()).padStart(2, '0');
-                        let mm = String(d.getMonth() + 1).padStart(2, '0');
-                        let yyyy = d.getFullYear();
-                        let displayDate = `${dd}-${mm}-${yyyy}`;
+                        let key = d.toISOString().slice(0, 10); // YYYY-MM-DD
+                        if (!entriesByDate[key]) entriesByDate[key] = [];
+                        entriesByDate[key].push(e);
+                    });
 
-                        tbody.innerHTML += `
+                    // 🔹 Get all dates of the month
+                    let [year, month] = monthFilter.split("-").map(Number);
+                    let daysInMonth = new Date(year, month, 0).getDate();
+                    let i = 1;
+                    let total = {
+                        active: 0, marking: 0, remarking: 0, outparty: 0,
+                        activeSalary: 0, markingSalary: 0, remarkingSalary: 0,
+                        outpartySalary: 0, totalSalary: 0
+                    };
+
+                    for (let day = 1; day <= daysInMonth; day++) {
+                        let dd = String(day).padStart(2, '0');
+                        let mm = String(month).padStart(2, '0');
+                        let displayDate = `${dd}-${mm}-${year}`;
+                        let key = `${year}-${mm}-${dd}`;
+
+                        let dayEntries = entriesByDate[key] || [];
+
+                        if (dayEntries.length === 0) {
+                            // Week Off row in red
+                            tbody.innerHTML += `
 <tr>
   <td>${i++}</td>
   <td>${displayDate}</td>
-  <td>${e.active}</td>
-  <td>${e.marking}</td>
-  <td>${e.remarking}</td>
-  <td>${e.outparty}</td>
+  <td colspan="10" style="text-align:center;color:red;font-weight:bold;">Week Off</td>
+</tr>`;
+                            continue;
+                        }
+
+                        // 🔹 Render actual entries
+                        dayEntries.forEach(e => {
+                            let d = new Date(e.date);
+                            let dd1 = String(d.getDate()).padStart(2, '0');
+                            let mm1 = String(d.getMonth() + 1).padStart(2, '0');
+                            let yyyy = d.getFullYear();
+                            let displayDateEntry = `${dd1}-${mm1}-${yyyy}`;
+
+                            tbody.innerHTML += `
+<tr>
+  <td>${i++}</td>
+  <td>${displayDateEntry}</td>
+  <td>${e.active || 0}</td>
+  <td>${e.marking || 0}</td>
+  <td>${e.remarking || 0}</td>
+  <td>${e.outparty || 0}</td>
   <td>${(e.activeSalary || 0).toFixed(2)}</td>
   <td>${(e.markingSalary || 0).toFixed(2)}</td>
   <td>${(e.remarkingSalary || 0).toFixed(2)}</td>
@@ -526,22 +583,24 @@
   <td>${(e.total || 0).toFixed(2)}</td>
   <td>
      <button class="btn-save btn-small" onclick="editEntry('${e.id}')">✏</button>
-   <button class="btn-delete btn-small" onclick="deleteEntry('${e.id}')">🗑</button>
+     <button class="btn-delete btn-small" onclick="deleteEntry('${e.id}')">🗑</button>
   </td>
 </tr>`;
 
-                        total.active += e.active;
-                        total.marking += e.marking;
-                        total.remarking += e.remarking;
-                        total.outparty += e.outparty;
-                        total.activeSalary += e.activeSalary;
-                        total.markingSalary += e.markingSalary;
-                        total.remarkingSalary += e.remarkingSalary;
-                        total.outpartySalary += e.outpartySalary;
-                        total.totalSalary += e.total;
-                    });
+                            // Add to monthly totals
+                            total.active += e.active || 0;
+                            total.marking += e.marking || 0;
+                            total.remarking += e.remarking || 0;
+                            total.outparty += e.outparty || 0;
+                            total.activeSalary += e.activeSalary || 0;
+                            total.markingSalary += e.markingSalary || 0;
+                            total.remarkingSalary += e.remarkingSalary || 0;
+                            total.outpartySalary += e.outpartySalary || 0;
+                            total.totalSalary += e.total || 0;
+                        });
+                    }
 
-                    // update totals row
+                    // 🔹 Update totals row
                     document.getElementById('t-active').textContent = total.active;
                     document.getElementById('t-marking').textContent = total.marking;
                     document.getElementById('t-remarking').textContent = total.remarking;
@@ -551,12 +610,28 @@
                     document.getElementById('t-remarkingSalary').textContent = total.remarkingSalary.toFixed(2);
                     document.getElementById('t-outpartySalary').textContent = total.outpartySalary.toFixed(2);
                     document.getElementById('t-totalSalary').textContent = total.totalSalary.toFixed(2);
+
                 })
                 .catch(error => {
                     console.error("❌ Firestore query error:", error);
                     alert("Error fetching entries. Check console.");
                 });
+
+            function resetTotals() {
+                document.getElementById('t-active').textContent = 0;
+                document.getElementById('t-marking').textContent = 0;
+                document.getElementById('t-remarking').textContent = 0;
+                document.getElementById('t-outparty').textContent = 0;
+                document.getElementById('t-activeSalary').textContent = "0.00";
+                document.getElementById('t-markingSalary').textContent = "0.00";
+                document.getElementById('t-remarkingSalary').textContent = "0.00";
+                document.getElementById('t-outpartySalary').textContent = "0.00";
+                document.getElementById('t-totalSalary').textContent = "0.00";
+            }
         }
+
+
+
         // Edit → load into Add Entry form
         function editEntry(docId) {
             db.collection("workEntries").doc(docId).get().then(doc => {
