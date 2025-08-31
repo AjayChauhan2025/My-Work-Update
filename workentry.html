@@ -226,6 +226,13 @@
             background: #25d366;
             color: white;
         }
+        .btn-small {
+            padding: 4px 8px;
+            font-size: 12px;
+            border-radius: 6px;
+            margin: 2px;
+        }
+
     </style>
 </head>
 <body>
@@ -424,7 +431,6 @@
             let remarking = +document.getElementById('remarking').value.trim() || 0;
             let outparty = +document.getElementById('outparty').value.trim() || 0;
 
-            // ❌ All pcs zero → block
             if (active === 0 && marking === 0 && remarking === 0 && outparty === 0) {
                 alert("Please enter your pcs");
                 return;
@@ -443,46 +449,19 @@
                 createdAt: new Date()
             };
 
-            // 🔥 Check duplicate (same name + date)
-            db.collection("workEntries")
-                .where("name", "==", name)
-                .where("date", "==", date)
-                .get()
-                .then(snapshot => {
-                    if (!snapshot.empty) {
-                        // 🔄 If entry exists → ask before update
-                        let confirmUpdate = confirm("આ તારીખની entry પહેલેથી save છે. શું entry સુધારવી છે?");
-                        if (confirmUpdate) {
-                            let docId = snapshot.docs[0].id;
-                            db.collection("workEntries").doc(docId).update(entry)
-                                .then(() => {
-                                    alert("✏️ Entry Updated Successfully!");
-                                    resetForm(); // clear inputs
-                                })
-                                .catch(error => {
-                                    console.error("Error updating entry: ", error);
-                                    alert("❌ Error updating entry. Check console.");
-                                });
-                        } else {
-                            alert("⚠️ Entry update રદ્દ કરવામાં આવી છે.");
-                        }
-                    } else {
-                        // ➕ If no entry → Add new
-                        db.collection("workEntries").add(entry)
-                            .then(() => {
-                                alert("✅ Entry Saved Successfully!");
-                                resetForm(); // clear inputs
-                            })
-                            .catch(error => {
-                                console.error("Error saving entry: ", error);
-                                alert("❌ Error saving entry. Check console.");
-                            });
-                    }
+            // 🔹 Save/update unique doc: key = name+date
+            let docId = name + "_" + date;
+            db.collection("workEntries").doc(docId).set(entry, { merge: true })
+                .then(() => {
+                    alert("✅ Entry Saved/Updated Successfully!");
+                    resetForm();
                 })
                 .catch(error => {
-                    console.error("Error checking duplicate: ", error);
+                    console.error("❌ Error saving entry:", error);
+                    alert("Error saving entry. Check console.");
                 });
         }
+
 
         // 🧹 Function to clear all input fields
         function resetForm() {
@@ -492,14 +471,11 @@
             document.getElementById('remarking').value = "";
             document.getElementById('outparty').value = "";
         }
-
         function showEntries() {
             showSection('view-entry');
 
             let loggedUser = JSON.parse(localStorage.getItem('loggedUser') || '{}');
             let userName = loggedUser.fullname || loggedUser.fullName || loggedUser.username;
-
-            console.log("📌 Current User for filter:", userName);
 
             let tbody = document.getElementById('entries-body');
             tbody.innerHTML = '';
@@ -508,81 +484,64 @@
                 activeSalary: 0, markingSalary: 0, remarkingSalary: 0, outpartySalary: 0, totalSalary: 0
             };
 
-            // 🔹 Simple query (no orderBy → no index problem)
             db.collection("workEntries")
                 .where("name", "==", userName)
                 .get()
                 .then(snapshot => {
-                    console.log("📦 Query result size:", snapshot.size);
-
                     if (snapshot.empty) {
-                        tbody.innerHTML = `<tr><td colspan="11" style="text-align:center;color:gray;">No entries found</td></tr>`;
+                        tbody.innerHTML = `<tr><td colspan="13" style="text-align:center;color:gray;">No entries found</td></tr>`;
                         return;
                     }
 
                     let entries = [];
                     snapshot.forEach(doc => {
-                        entries.push(doc.data());
+                        let data = doc.data();
+                        data.id = doc.id; // store docId for edit/delete
+                        entries.push(data);
                     });
 
-                    // 🔹 Sort by date (ascending)
+                    // Sort by date ascending
                     entries.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-                    // 🔹 Find date range (first → last entry)
-                    let startDate = new Date(entries[0].date);
-                    let endDate = new Date(entries[entries.length - 1].date);
-
                     let i = 1;
-                    for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-                        let currentDate = d.toISOString().split("T")[0]; // YYYY-MM-DD
-
-                        // 🔹 find entry for this date
-                        let e = entries.find(x => x.date === currentDate);
-
-                        // 🔹 convert to dd-mm-yyyy
+                    entries.forEach(e => {
+                        let d = new Date(e.date);
                         let dd = String(d.getDate()).padStart(2, '0');
                         let mm = String(d.getMonth() + 1).padStart(2, '0');
                         let yyyy = d.getFullYear();
                         let displayDate = `${dd}-${mm}-${yyyy}`;
 
-                        if (e) {
-                            tbody.innerHTML += `
+                        tbody.innerHTML += `
 <tr>
-    <td>${i++}</td>
-    <td>${displayDate}</td>
-    <td>${e.active}</td>
-    <td>${e.marking}</td>
-    <td>${e.remarking}</td>
-    <td>${e.outparty}</td>
-    <td>${(e.activeSalary || 0).toFixed(2)}</td>
-    <td>${(e.markingSalary || 0).toFixed(2)}</td>
-    <td>${(e.remarkingSalary || 0).toFixed(2)}</td>
-    <td>${(e.outpartySalary || 0).toFixed(2)}</td>
-    <td>${(e.total || 0).toFixed(2)}</td>
+  <td>${i++}</td>
+  <td>${displayDate}</td>
+  <td>${e.active}</td>
+  <td>${e.marking}</td>
+  <td>${e.remarking}</td>
+  <td>${e.outparty}</td>
+  <td>${(e.activeSalary || 0).toFixed(2)}</td>
+  <td>${(e.markingSalary || 0).toFixed(2)}</td>
+  <td>${(e.remarkingSalary || 0).toFixed(2)}</td>
+  <td>${(e.outpartySalary || 0).toFixed(2)}</td>
+  <td>${(e.total || 0).toFixed(2)}</td>
+  <td>
+     <button class="btn-save btn-small" onclick="editEntry('${e.id}')">✏</button>
+   <button class="btn-delete btn-small" onclick="deleteEntry('${e.id}')">🗑</button>
+  </td>
 </tr>`;
 
-                            total.active += e.active;
-                            total.marking += e.marking;
-                            total.remarking += e.remarking;
-                            total.outparty += e.outparty;
-                            total.activeSalary += e.activeSalary;
-                            total.markingSalary += e.markingSalary;
-                            total.remarkingSalary += e.remarkingSalary;
-                            total.outpartySalary += e.outpartySalary;
-                            total.totalSalary += e.total;
+                        total.active += e.active;
+                        total.marking += e.marking;
+                        total.remarking += e.remarking;
+                        total.outparty += e.outparty;
+                        total.activeSalary += e.activeSalary;
+                        total.markingSalary += e.markingSalary;
+                        total.remarkingSalary += e.remarkingSalary;
+                        total.outpartySalary += e.outpartySalary;
+                        total.totalSalary += e.total;
+                    });
 
-                        } else {
-                            // 🔹 WEEK OFF row
-                            tbody.innerHTML += `
-<tr style="color:gray; font-style:italic; background:#f9f9f9;">
-    <td>${i++}</td>
-    <td>${displayDate}</td>
-    <td colspan="9" style="text-align:center;">WEEK OFF</td>
-</tr>`;
-                        }
-                    }
-
-                    // 🔹 Totals update
+                    // update totals row
                     document.getElementById('t-active').textContent = total.active;
                     document.getElementById('t-marking').textContent = total.marking;
                     document.getElementById('t-remarking').textContent = total.remarking;
@@ -595,9 +554,43 @@
                 })
                 .catch(error => {
                     console.error("❌ Firestore query error:", error);
-                    alert("Error fetching entries. Check console for details.");
+                    alert("Error fetching entries. Check console.");
                 });
         }
+        // Edit → load into Add Entry form
+        function editEntry(docId) {
+            db.collection("workEntries").doc(docId).get().then(doc => {
+                if (doc.exists) {
+                    let e = doc.data();
+                    document.getElementById('date').value = e.date;
+                    document.getElementById('active').value = e.active;
+                    document.getElementById('marking').value = e.marking;
+                    document.getElementById('remarking').value = e.remarking;
+                    document.getElementById('outparty').value = e.outparty;
+
+                    // store current editing ID
+                    localStorage.setItem("editingDocId", docId);
+
+                    showSection('add-entry');
+                }
+            });
+        }
+
+        // Delete → remove from Firestore
+        function deleteEntry(docId) {
+            if (!confirm("⚠️ Are you sure you want to delete this entry?")) return;
+            db.collection("workEntries").doc(docId).delete()
+                .then(() => {
+                    alert("✅ Entry deleted successfully!");
+                    showEntries();
+                })
+                .catch(err => {
+                    console.error("❌ Error deleting entry:", err);
+                    alert("Error deleting entry.");
+                });
+        }
+
+
 
 
         function deleteAllEntries() {
@@ -710,43 +703,51 @@
             let userName = loggedUser.fullname || loggedUser.fullName || loggedUser.username;
 
             try {
-                // 🔹 Get total salary from workEntries
+                // 🔹 Firestore માંથી એ user ની બધી entries લાવો
                 let snapshot = await db.collection("workEntries")
                     .where("name", "==", userName).get();
 
                 let totalSalary = 0;
                 snapshot.forEach(doc => {
                     let e = doc.data();
-                    totalSalary += e.total || 0;
+                    if (e.total !== undefined) {
+                        // always prefer saved total
+                        totalSalary += e.total;
+                    } else {
+                        // fallback if old entry has no total field
+                        totalSalary += (e.activeSalary || 0) + (e.markingSalary || 0) + (e.remarkingSalary || 0) + (e.outpartySalary || 0);
+                    }
                 });
 
-                // 🔹 Get payments from Firestore
+
+                // 🔹 Get payments info
                 let payDoc = await db.collection("payments").doc(userName).get();
                 let pay = payDoc.exists ? payDoc.data() : { workDays: 0, withdrw: 0, bank: 0 };
 
                 let tbody = document.getElementById('salary-body');
                 tbody.innerHTML = '';
 
-                let salaryPerDay = totalSalary / 26;
-                let netSalary = salaryPerDay * (pay.workDays || 0);
-                let payInCash = netSalary - (pay.withdrw || 0) - (pay.bank || 0);
+                // 🔹 Cash to pay = total salary - withdrawals - bank
+                let payInCash = totalSalary - (pay.withdrw || 0) - (pay.bank || 0);
 
+                // 🔹 Render table row
                 tbody.innerHTML += `
-            <tr>
-                <td>1</td>
-                <td>${userName}</td>
-                <td>${totalSalary.toFixed(2)}</td>
-                <td>${pay.workDays}</td>
-                <td>${netSalary.toFixed(2)}</td>
-                <td>${pay.withdrw}</td>
-                <td>${pay.bank}</td>
-                <td>${payInCash.toFixed(2)}</td>
-            </tr>`;
+        <tr>
+            <td>1</td>
+            <td>${userName}</td>
+            <td>${totalSalary.toFixed(2)}</td>   <!-- Salary (Total) -->
+            <td>${pay.workDays}</td>
+            <td>${totalSalary.toFixed(2)}</td>   <!-- NetSalary (same as total for now) -->
+            <td>${pay.withdrw}</td>
+            <td>${pay.bank}</td>
+            <td>${payInCash.toFixed(2)}</td>
+        </tr>`;
             } catch (error) {
                 console.error("❌ Error fetching salary summary:", error);
                 alert("Error fetching salary summary.");
             }
         }
+
 
 
 
