@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://www.gstatic.com/firebasejs/11.0.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+
 
     <title>Work Entry Dashboard</title>
     <style>
@@ -128,12 +131,14 @@
         }
 
         .table-wrapper {
+            max-height: 300px; /* tamaru required height */
             overflow-x: auto; /* 🔑 allows horizontal scroll */
             -webkit-overflow-scrolling: touch; /* smooth scrolling on mobile */
         }
 
             .table-wrapper table {
                 min-width: 500px; /* Set a minimum width for table */
+                overflow-y: auto; /* vertical scroll */
             }
 
         /* Table */
@@ -147,7 +152,6 @@
             table-layout: fixed; /* 👈 fix column width */
             -webkit-overflow-scrolling: touch;
             font-size: 8px; /* ✅ table font size */
-
         }
 
             table th, table td {
@@ -156,12 +160,21 @@
                 text-align: center;
                 word-wrap: break-word; /* 👈 text wrap thashe */
                 font-size: 12px; /* ✅ cells font size */
-
-
             }
+        /* Body rows ni height control */
+        #entries-table tbody td {
+            padding: 2px 4px; /* ochi padding */
+            font-size: 10px; /* font size chhoto karo */
+            line-height: 1.1; /* row spacing ochi karo */
+            height: 20px; /* fixed height, optional */
+            vertical-align: middle;
+        }
+
+
         h2 {
             color: white;
         }
+
         /* View Entry column widths */
         #entries-table th:nth-child(1),
         #entries-table td:nth-child(1) {
@@ -274,12 +287,14 @@
             background: #25d366;
             color: white;
         }
+
         .btn-small {
             padding: 4px 8px;
             font-size: 12px;
             border-radius: 6px;
             margin: 2px;
         }
+
         .month-filter label {
             color: white;
             font-weight: bold;
@@ -292,6 +307,24 @@
             border-radius: 6px;
             padding: 4px 6px;
         }
+        .btn-small {
+            padding: 2px 6px;
+            font-size: 12px;
+            cursor: pointer;
+            display: inline-block; /* horizontal layout mate */
+            margin-right: 4px; /* button vachche gap */
+            vertical-align: middle; /* text vertically center */
+        }
+
+        .button-group {
+            display: flex;
+            gap: 4px; /* button vachche gap */
+            justify-content: flex-start; /* left side align karva */
+            align-items: center; /* vertically center */
+        }
+
+
+
 
     </style>
 </head>
@@ -344,6 +377,8 @@
                     <label for="monthFilter"><b>Filter by Month:</b></label>
                     <input type="month" id="monthFilter" onchange="showEntries()" />
                 </div>
+                <button class="dashboard-btn" style="background:#075e54;" onclick="exportTableToPDF()">🖨 Export to PDF</button>
+
 
             </div>
             <div class="table-wrapper">
@@ -630,9 +665,11 @@
   <td>${(e.outpartySalary || 0).toFixed(2)}</td>
   <td>${(e.total || 0).toFixed(2)}</td>
   <td>
-     <button class="btn-save btn-small" onclick="editEntry('${e.id}')">✏</button>
-     <button class="btn-delete btn-small" onclick="deleteEntry('${e.id}')">🗑</button>
-  </td>
+    <div class="button-group">
+        <button class="btn-save btn-small" onclick="editEntry('${e.id}')">✏</button>
+        <button class="btn-delete btn-small" onclick="deleteEntry('${e.id}')">🗑</button>
+    </div>
+</td>
 </tr>`;
 
                             // Add to monthly totals
@@ -991,6 +1028,38 @@
                 console.error("❌ Error loading withdraw details:", err);
             }
         }
+        function exportTableToPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('p', 'mm', 'a4');
+
+            // Logged-in user ni info
+            let loggedUser = JSON.parse(localStorage.getItem('loggedUser') || '{}');
+            let userName = loggedUser.fullname || loggedUser.fullName || loggedUser.username || 'User';
+
+            // Header
+            doc.setFontSize(12);
+            doc.text(`Work Entries - ${userName}`, 14, 10); // User name upar display
+
+            doc.autoTable({
+                startY: 15,            // start top thi 15mm upar
+                html: '#entries-table',
+                theme: 'grid',
+                headStyles: { fillColor: [7, 94, 84], textColor: 255 },
+                styles: {
+                    fontSize: 8,
+                    cellPadding: 1       // row height compact
+                },
+                tableWidth: 'auto',
+                pageBreak: 'avoid',
+                showHead: 'everyPage'
+            });
+
+            doc.save("work_entries.pdf");
+        }
+
+
+
+
 
 
 
