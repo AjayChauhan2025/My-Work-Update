@@ -133,19 +133,21 @@
         }
 
             .table-wrapper table {
-                min-width: 800px; /* Set a minimum width for table */
+                min-width: 500px; /* Set a minimum width for table */
             }
 
         /* Table */
         table {
             border-collapse: collapse;
             margin-top: 15px;
-            width: 100%;
+            width: 50%;
             background: white;
             border-radius: 10px;
             overflow: auto;
             table-layout: fixed; /* 👈 fix column width */
             -webkit-overflow-scrolling: touch;
+            font-size: 8px; /* ✅ table font size */
+
         }
 
             table th, table td {
@@ -153,10 +155,56 @@
                 padding: 8px;
                 text-align: center;
                 word-wrap: break-word; /* 👈 text wrap thashe */
+                font-size: 12px; /* ✅ cells font size */
+
+
             }
         h2 {
             color: white;
         }
+        /* View Entry column widths */
+        #entries-table th:nth-child(1),
+        #entries-table td:nth-child(1) {
+            width: 15px;
+        }
+        /* # (serial no) */
+
+        #entries-table th:nth-child(2),
+        #entries-table td:nth-child(2) {
+            width: 50px;
+        }
+        /* Date */
+
+        #entries-table th:nth-child(3),
+        #entries-table td:nth-child(3),
+        #entries-table th:nth-child(4),
+        #entries-table td:nth-child(4),
+        #entries-table th:nth-child(5),
+        #entries-table td:nth-child(5),
+        #entries-table th:nth-child(6),
+        #entries-table td:nth-child(6) {
+            width: 35px;
+        }
+        /* Active/Marking/ReMarking/OutParty */
+
+        #entries-table th:nth-child(7),
+        #entries-table td:nth-child(7),
+        #entries-table th:nth-child(8),
+        #entries-table td:nth-child(8),
+        #entries-table th:nth-child(9),
+        #entries-table td:nth-child(9),
+        #entries-table th:nth-child(10),
+        #entries-table td:nth-child(10) {
+            width: 45px;
+        }
+        /* Salaries */
+
+        #entries-table th:nth-child(11),
+        #entries-table td:nth-child(11) {
+            width: 55px;
+        }
+        /* Total Salary */
+
 
         /* Column widths */
         /* Example: specific column widths */
