@@ -602,6 +602,8 @@
                     if (entries.length === 0) {
                         tbody.innerHTML = `<tr><td colspan="13" style="text-align:center;color:gray;">No entries for this month</td></tr>`;
                         resetTotals();
+                        // 🟢 salary reset if no entries
+                        localStorage.setItem("monthlyTotalSalary", "0");
                         return;
                     }
 
@@ -696,6 +698,8 @@
                     document.getElementById('t-outpartySalary').textContent = total.outpartySalary.toFixed(2);
                     document.getElementById('t-totalSalary').textContent = total.totalSalary.toFixed(2);
 
+                    // ✅ Save monthly salary in localStorage
+                    localStorage.setItem("monthlyTotalSalary", total.totalSalary.toFixed(2));
                 })
                 .catch(error => {
                     console.error("❌ Firestore query error:", error);
@@ -712,8 +716,12 @@
                 document.getElementById('t-remarkingSalary').textContent = "0.00";
                 document.getElementById('t-outpartySalary').textContent = "0.00";
                 document.getElementById('t-totalSalary').textContent = "0.00";
+
+                // reset localStorage salary also
+                localStorage.setItem("monthlyTotalSalary", "0");
             }
         }
+
 
 
 
@@ -863,22 +871,27 @@
             let userName = loggedUser.fullname || loggedUser.fullName || loggedUser.username;
 
             try {
-                // 🔹 Firestore માંથી એ user ની બધી entries લાવો
-                let snapshot = await db.collection("workEntries")
-                    .where("name", "==", userName).get();
-
+                // 🔹 First check if filtered monthly salary is stored
+                let monthlySalary = localStorage.getItem("monthlyTotalSalary");
                 let totalSalary = 0;
-                snapshot.forEach(doc => {
-                    let e = doc.data();
-                    if (e.total !== undefined) {
-                        // always prefer saved total
-                        totalSalary += e.total;
-                    } else {
-                        // fallback if old entry has no total field
-                        totalSalary += (e.activeSalary || 0) + (e.markingSalary || 0) + (e.remarkingSalary || 0) + (e.outpartySalary || 0);
-                    }
-                });
 
+                if (monthlySalary) {
+                    totalSalary = parseFloat(monthlySalary) || 0;
+                } else {
+                    // fallback → old method (all entries)
+                    let snapshot = await db.collection("workEntries")
+                        .where("name", "==", userName).get();
+
+                    snapshot.forEach(doc => {
+                        let e = doc.data();
+                        if (e.total !== undefined) {
+                            totalSalary += e.total;
+                        } else {
+                            totalSalary += (e.activeSalary || 0) + (e.markingSalary || 0) +
+                                (e.remarkingSalary || 0) + (e.outpartySalary || 0);
+                        }
+                    });
+                }
 
                 // 🔹 Get payments info
                 let payDoc = await db.collection("payments").doc(userName).get();
@@ -887,26 +900,25 @@
                 let tbody = document.getElementById('salary-body');
                 tbody.innerHTML = '';
 
-                // 🔹 Cash to pay = total salary - withdrawals - bank
                 let payInCash = totalSalary - (pay.withdrw || 0) - (pay.bank || 0);
 
-                // 🔹 Render table row
                 tbody.innerHTML += `
-        <tr>
-            <td>1</td>
-            <td>${userName}</td>
-            <td>${totalSalary.toFixed(2)}</td>   <!-- Salary (Total) -->
-            <td>${pay.workDays}</td>
-            <td>${totalSalary.toFixed(2)}</td>   <!-- NetSalary (same as total for now) -->
-            <td>${pay.withdrw}</td>
-            <td>${pay.bank}</td>
-            <td>${payInCash.toFixed(2)}</td>
-        </tr>`;
+            <tr>
+                <td>1</td>
+                <td>${userName}</td>
+                <td>${totalSalary.toFixed(2)}</td>
+                <td>${pay.workDays}</td>
+                <td>${totalSalary.toFixed(2)}</td>
+                <td>${pay.withdrw}</td>
+                <td>${pay.bank}</td>
+                <td>${payInCash.toFixed(2)}</td>
+            </tr>`;
             } catch (error) {
                 console.error("❌ Error fetching salary summary:", error);
                 alert("Error fetching salary summary.");
             }
         }
+
 
 
 
