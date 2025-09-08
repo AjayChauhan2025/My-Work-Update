@@ -339,17 +339,19 @@
             <h2>Dashboard</h2>
             <div id="dashboard-summary"
                  style="margin-top:5px; font-size:18px; font-weight:bold; text-align:center;">
+
                 <!-- Text values -->
-                <p id="present-days">Present Days: 0</p>
-                <p id="absent-days">Absent Days: 0</p>
-                <p id="total-salary">Total Salary: 0</p>
-                <p id="salary-emoji" style="font-size:60px;"></p>
+                <p id="present-days" style="margin:2px 0;">Present Days: 0</p>
+                <p id="absent-days" style="margin:2px 0;">Absent Days: 0</p>
+                <p id="total-salary" style="margin:2px 0;">Total Salary: 0</p>
+                <p id="salary-emoji" style="font-size:60px; margin:5px 0;"></p>
 
                 <!-- Unique Doughnut Chart -->
-                <div style="width:200px; height:200px; margin:5px auto;">
+                <div style="width:200px; height:200px; margin:5px auto 0 auto;">
                     <canvas id="attendanceChart"></canvas>
                 </div>
             </div>
+
             <button class="dashboard-btn" onclick="showSection('add-entry')">➕ Add Entry</button>
             <button class="dashboard-btn" onclick="showEntries()">📄 View Entry</button>
             <button class="dashboard-btn" onclick="showSection('update-profile')">🛠 Update Profile</button>
@@ -1199,10 +1201,13 @@
                                         size: 14,
                                         weight: 'bold'
                                     }
-                                }
+                                },
+                                // 👇 legend પર click disable
+                                onClick: (e) => e.stopPropagation()
                             }
                         }
                     }
+
 
                 });
 
