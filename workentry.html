@@ -6,7 +6,10 @@
     <script src="https://www.gstatic.com/firebasejs/11.0.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore-compat.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+
+
 
 
     <title>Work Entry Dashboard</title>
@@ -131,7 +134,7 @@
         }
 
         .table-wrapper {
-            max-height: 300px; /* tamaru required height */
+            max-height: 900px; /* tamaru required height */
             overflow-x: auto; /* 🔑 allows horizontal scroll */
             -webkit-overflow-scrolling: touch; /* smooth scrolling on mobile */
         }
@@ -146,6 +149,7 @@
             border-collapse: collapse;
             margin-top: 15px;
             width: 50%;
+            height: 100%;
             background: white;
             border-radius: 10px;
             overflow: auto;
@@ -307,6 +311,7 @@
             border-radius: 6px;
             padding: 4px 6px;
         }
+
         .btn-small {
             padding: 2px 6px;
             font-size: 12px;
@@ -322,10 +327,6 @@
             justify-content: flex-start; /* left side align karva */
             align-items: center; /* vertically center */
         }
-
-
-
-
     </style>
 </head>
 <body>
@@ -336,6 +337,19 @@
         <!-- Dashboard -->
         <div id="dashboard" class="section card" style="text-align: center; color: white;">
             <h2>Dashboard</h2>
+            <div id="dashboard-summary"
+                 style="margin-top:5px; font-size:18px; font-weight:bold; text-align:center;">
+                <!-- Text values -->
+                <p id="present-days">Present Days: 0</p>
+                <p id="absent-days">Absent Days: 0</p>
+                <p id="total-salary">Total Salary: 0</p>
+                <p id="salary-emoji" style="font-size:60px;"></p>
+
+                <!-- Unique Doughnut Chart -->
+                <div style="width:200px; height:200px; margin:5px auto;">
+                    <canvas id="attendanceChart"></canvas>
+                </div>
+            </div>
             <button class="dashboard-btn" onclick="showSection('add-entry')">➕ Add Entry</button>
             <button class="dashboard-btn" onclick="showEntries()">📄 View Entry</button>
             <button class="dashboard-btn" onclick="showSection('update-profile')">🛠 Update Profile</button>
@@ -505,6 +519,7 @@
             }
             {
                 loadWithdrawHistory();
+                loadDashboardSummary();
             };
         };
 
@@ -523,7 +538,7 @@
         }
 
 
-        function saveEntry() {
+        async function saveEntry() {
             let name = document.getElementById('name').value.trim();
             let date = document.getElementById('date').value;
 
@@ -531,6 +546,11 @@
             let marking = +document.getElementById('marking').value.trim() || 0;
             let remarking = +document.getElementById('remarking').value.trim() || 0;
             let outparty = +document.getElementById('outparty').value.trim() || 0;
+
+            if (!name || !date) {
+                alert("❌ Please fill Name and Date");
+                return;
+            }
 
             if (active === 0 && marking === 0 && remarking === 0 && outparty === 0) {
                 alert("Please enter your pcs");
@@ -546,25 +566,40 @@
 
             let entry = {
                 name, date, active, marking, remarking, outparty,
-                activeSalary, markingSalary, remarkingSalary, outpartySalary, total: totalSalary,
+                activeSalary, markingSalary, remarkingSalary, outpartySalary,
+                total: totalSalary,
                 createdAt: new Date()
             };
 
-            // 🔹 Save/update unique doc: key = name+date
+            // 🔹 Unique docId = name + date
             let docId = name + "_" + date;
-            db.collection("workEntries").doc(docId).set(entry, { merge: true })
-                .then(() => {
-                    alert("✅ Entry Saved/Updated Successfully!");
+            let docRef = db.collection("workEntries").doc(docId);
+
+            try {
+                let snap = await docRef.get();
+
+                if (snap.exists) {
+                    // 🔹 If already exists, ask user before overwrite
+                    if (confirm("⚠️ Aa entry pahelathi save che.\nTamne overwrite karvu che?")) {
+                        await docRef.set(entry, { merge: true });
+                        alert("✅ Entry updated successfully!");
+                        resetForm();
+                    } else {
+                        alert("❌ Entry overwrite cancel kari.");
+                    }
+                } else {
+                    // 🔹 New entry
+                    await docRef.set(entry);
+                    alert("✅ New entry saved successfully!");
                     resetForm();
-                })
-                .catch(error => {
-                    console.error("❌ Error saving entry:", error);
-                    alert("Error saving entry. Check console.");
-                });
+                }
+            } catch (error) {
+                console.error("❌ Error saving entry:", error);
+                alert("Error saving entry. Check console.");
+            }
         }
 
-
-        // 🧹 Function to clear all input fields
+        // 🧹 Reset function
         function resetForm() {
             document.getElementById('date').value = "";
             document.getElementById('active').value = "";
@@ -572,6 +607,7 @@
             document.getElementById('remarking').value = "";
             document.getElementById('outparty').value = "";
         }
+
         function showEntries() {
             showSection('view-entry');
 
@@ -1068,6 +1104,114 @@
 
             doc.save("work_entries.pdf");
         }
+        async function loadDashboardSummary() {
+            let loggedUser = JSON.parse(localStorage.getItem('loggedUser') || '{}');
+            let userName = loggedUser.fullname || loggedUser.fullName || loggedUser.username;
+
+            if (!userName) return;
+
+            let monthFilter = new Date().toISOString().slice(0, 7); // current month
+            let entries = [];
+
+            try {
+                let snapshot = await db.collection("workEntries")
+                    .where("name", "==", userName).get();
+
+                snapshot.forEach(doc => {
+                    let data = doc.data();
+                    let entryMonth = new Date(data.date).toISOString().slice(0, 7);
+                    if (entryMonth === monthFilter) entries.push(data);
+                });
+
+                let now = new Date();
+                let year = now.getFullYear();
+                let month = now.getMonth() + 1;
+                let daysInMonth = new Date(year, month, 0).getDate();
+
+                let entriesByDate = {};
+                entries.forEach(e => {
+                    let d = new Date(e.date);
+                    let key = d.toISOString().slice(0, 10);
+                    if (!entriesByDate[key]) entriesByDate[key] = [];
+                    entriesByDate[key].push(e);
+                });
+
+                let present = 0, absent = 0, totalSalary = 0;
+
+                for (let day = 1; day <= daysInMonth; day++) {
+                    let dd = String(day).padStart(2, '0');
+                    let mm = String(month).padStart(2, '0');
+                    let key = `${year}-${mm}-${dd}`;
+
+                    if (entriesByDate[key]) {
+                        present++;
+                        entriesByDate[key].forEach(e => totalSalary += e.total || 0);
+                    } else {
+                        absent++;
+                    }
+                }
+
+                // Salary color + emoji logic
+                let salaryColor = "green";
+                let emoji = "😊"; // default smile
+                if (totalSalary < 25000) {
+                    salaryColor = "red";
+                    emoji = "😢"; // sad
+                } else if (totalSalary >= 25000 && totalSalary <= 30000) {
+                    salaryColor = "orange";
+                    emoji = "🙂"; // happy
+                } else {
+                    salaryColor = "green";
+                    emoji = "😃"; // big smile
+                }
+
+                // Update DOM
+                document.getElementById("present-days").textContent = `Present Days: ${present}`;
+                document.getElementById("absent-days").textContent = `Absent Days: ${absent}`;
+                document.getElementById("total-salary").innerHTML = `Total Salary: <span style="color:${salaryColor};">${totalSalary.toFixed(2)}</span>`;
+                document.getElementById("salary-emoji").textContent = emoji;
+
+                // ✅ Chart.js Graph
+                console.log("📊 Drawing chart...", present, absent);
+                let ctx = document.getElementById('attendanceChart').getContext('2d');
+                if (!ctx) {
+                    console.error("⚠️ attendanceChart canvas not found!");
+                    return;
+                }
+                window.attendanceChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Present', 'Absent'],
+                        datasets: [{
+                            data: [present, absent],
+                            backgroundColor: ['#25d366', '#ff4d4d'],
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    color: '#ffffff',   // 👈 White label text
+                                    font: {
+                                        size: 14,
+                                        weight: 'bold'
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                });
+
+            } catch (err) {
+                console.error("❌ Error loading dashboard summary:", err);
+            }
+        }
+
+
 
 
 
