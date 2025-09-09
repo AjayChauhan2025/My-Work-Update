@@ -355,7 +355,27 @@
                 transform: scale(1.1) rotate(15deg);
             }
         }
+        /* Mobile responsive: screen <= 480px */
+        @media screen and (max-width: 480px) {
+            #dashboard-summary {
+                flex-direction: column;
+                align-items: center;
+                gap: 15px;
+            }
 
+                #dashboard-summary > div {
+                    flex: 0 0 auto;
+                    width: 90%;
+                }
+
+                    /* Left side text & chart align center on mobile */
+                    #dashboard-summary > div:first-child p,
+                    #dashboard-summary > div:first-child div {
+                        text-align: center;
+                        margin-left: auto;
+                        margin-right: auto;
+                    }
+        }
        
 
 
