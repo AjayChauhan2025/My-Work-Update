@@ -355,7 +355,7 @@
                 transform: scale(1.1) rotate(15deg);
             }
         }
-        /* Mobile responsive: screen <= 480px */
+        /* Mobile responsive: stacked divs */
         @media screen and (max-width: 480px) {
             #dashboard-summary {
                 flex-direction: column;
@@ -364,11 +364,11 @@
             }
 
                 #dashboard-summary > div {
-                    flex: 0 0 auto;
                     width: 90%;
+                    flex: 0 0 auto;
                 }
 
-                    /* Left side text & chart align center on mobile */
+                    /* Center text and chart on mobile */
                     #dashboard-summary > div:first-child p,
                     #dashboard-summary > div:first-child div {
                         text-align: center;
@@ -393,10 +393,10 @@
             <h2>Dashboard</h2>
             <div id="dashboard-summary"
                  style="margin-top:5px; font-size:16px; font-weight:bold;
-display:flex; justify-content:flex-start; align-items:flex-start; flex-wrap:wrap; gap:20px;">
+display:flex; justify-content:flex-start; align-items:flex-start; gap:5px; flex-wrap:nowrap;">
 
                 <!-- Left Side: Summary + Chart -->
-                <div style="flex:0 0 200px; min-width:180px; color:white;">
+                <div style="flex:0 0 200px; min-width:200px; color:white;">
                     <p id="present-days" style="margin:2px 0; text-align:left;">Present Days: 0</p>
                     <p id="absent-days" style="margin:2px 0; text-align:left;">Absent Days: 0</p>
                     <p id="total-salary" style="margin:2px 0; text-align:left;">Total Salary: 0</p>
@@ -408,25 +408,22 @@ display:flex; justify-content:flex-start; align-items:flex-start; flex-wrap:wrap
                     </div>
                 </div>
 
-                <!-- 💎 Right Side: Target Glass -->
-                <div style="flex:0 0 180px; min-width:160px; text-align:center;">
-                    <h3 style="color:white; font-size:16px;">🎯 Monthly Target</h3>
+                <!-- Right Side: Target Glass -->
+                <div style="flex:0 0 180px; min-width:180px; text-align:center;">
+                    <h3 style="color:white; font-size:14px;">🎯 Monthly Target</h3>
 
-                    <!-- Target Input -->
                     <input type="number" id="user-target" placeholder="Enter Target (₹)"
-                           style="width:120px; padding:4px; font-size:12px; border-radius:6px; text-align:center;">
+                           style="width:80px; padding:4px; font-size:12px; border-radius:6px; text-align:center;">
                     <button onclick="setTarget()"
                             style="margin-left:5px; padding:4px 8px; font-size:12px; border-radius:6px; background:#25d366; color:white; border:none;">
                         Set
                     </button>
 
-                    <!-- Glass Tube -->
-                    <div style="position:relative; width:80px; height:200px; margin:5px auto;
+                    <div style="position:relative; width:60px; height:200px; margin:5px auto;
 border:2px solid #075e54; border-radius:40px; overflow:hidden; background:#f0f0f0;">
                         <div id="glass-fill"
                              style="position:absolute; bottom:0; left:0; width:100%; height:0%;
     display:flex; flex-wrap:wrap; align-content:flex-start; gap:2px; padding:2px; overflow:hidden;">
-                            <!-- Diamonds dynamically add thase -->
                         </div>
                     </div>
                     <p id="target-text" style="margin-top:5px; font-weight:bold; color:white; font-size:14px;">
@@ -434,6 +431,7 @@ border:2px solid #075e54; border-radius:40px; overflow:hidden; background:#f0f0f
                     </p>
                 </div>
             </div>
+
 
 
 
