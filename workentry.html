@@ -327,6 +327,38 @@
             justify-content: flex-start; /* left side align karva */
             align-items: center; /* vertically center */
         }
+        #glass-fill {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 0%;
+            overflow: hidden;
+        }
+
+        .diamond {
+            position: absolute;
+            font-size: 8px; /* નાના diamonds */
+            color: #00e5ff;
+            text-shadow: 0 0 2px #aef, 0 0 4px #aef;
+            animation: sparkle 2s infinite alternate;
+        }
+
+        @keyframes sparkle {
+            from {
+                opacity: 0.7;
+                transform: scale(0.9) rotate(0deg);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1.1) rotate(15deg);
+            }
+        }
+
+
+        
+
     </style>
 </head>
 <body>
@@ -338,19 +370,52 @@
         <div id="dashboard" class="section card" style="text-align: center; color: white;">
             <h2>Dashboard</h2>
             <div id="dashboard-summary"
-                 style="margin-top:5px; font-size:18px; font-weight:bold; text-align:center;">
+                 style="margin-top:5px; font-size:16px; font-weight:bold;
+            display:flex; justify-content:space-around; align-items:flex-start; flex-wrap:wrap; gap:10px;">
 
-                <!-- Text values -->
-                <p id="present-days" style="margin:2px 0;">Present Days: 0</p>
-                <p id="absent-days" style="margin:2px 0;">Absent Days: 0</p>
-                <p id="total-salary" style="margin:2px 0;">Total Salary: 0</p>
-                <p id="salary-emoji" style="font-size:60px; margin:5px 0;"></p>
+                <!-- 📊 Left Side: Summary + Chart -->
+                <div style="flex:1; min-width:180px; text-align:center; color:white;">
+                    <p id="present-days" style="margin:2px 0;">Present Days: 0</p>
+                    <p id="absent-days" style="margin:2px 0;">Absent Days: 0</p>
+                    <p id="total-salary" style="margin:2px 0;">Total Salary: 0</p>
+                    <p id="salary-emoji" style="font-size:40px; margin:5px 0;"></p>
 
-                <!-- Unique Doughnut Chart -->
-                <div style="width:200px; height:200px; margin:5px auto 0 auto;">
-                    <canvas id="attendanceChart"></canvas>
+                    <!-- Doughnut Chart -->
+                    <div style="width:160px; height:160px; margin:5px auto;">
+                        <canvas id="attendanceChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- 💎 Right Side: Target Glass -->
+                <div style="flex:1; min-width:160px; text-align:center;">
+                    <h3 style="color:white; font-size:16px;">🎯 Monthly Target</h3>
+
+                    <!-- Target Input -->
+                    <input type="number" id="user-target" placeholder="Enter Target (₹)"
+                           style="width:120px; padding:4px; font-size:12px; border-radius:6px; text-align:center;">
+                    <button onclick="setTarget()"
+                            style="margin-left:5px; padding:4px 8px; font-size:12px; border-radius:6px; background:#25d366; color:white; border:none;">
+                        Set
+                    </button>
+
+                    <!-- Glass Tube -->
+                    <div style="position:relative; width:80px; height:200px; margin:10px auto;
+            border:2px solid #075e54; border-radius:40px; overflow:hidden; background:#f0f0f0;">
+                        <div id="glass-fill"
+                             style="position:absolute; bottom:0; left:0; width:100%; height:0%;
+                display:flex; flex-wrap:wrap; align-content:flex-start; gap:2px; padding:2px; overflow:hidden;">
+                            <!-- Diamonds dynamically add thase -->
+                        </div>
+                    </div>
+                    <p id="target-text" style="margin-top:5px; font-weight:bold; color:white; font-size:14px;">
+                        0 / 0 ₹
+                    </p>
+
+
                 </div>
             </div>
+
+
 
             <button class="dashboard-btn" onclick="showSection('add-entry')">➕ Add Entry</button>
             <button class="dashboard-btn" onclick="showEntries()">📄 View Entry</button>
@@ -1106,10 +1171,20 @@
 
             doc.save("work_entries.pdf");
         }
+       
+
+        // ✅ User-defined target setter
+        function setTarget() {
+            let val = parseFloat(document.getElementById("user-target").value) || 0;
+            if (val > 0) {
+                localStorage.setItem("monthlyTarget", val);
+                loadDashboardSummary(); // refresh view
+            }
+        }
+
         async function loadDashboardSummary() {
             let loggedUser = JSON.parse(localStorage.getItem('loggedUser') || '{}');
             let userName = loggedUser.fullname || loggedUser.fullName || loggedUser.username;
-
             if (!userName) return;
 
             let monthFilter = new Date().toISOString().slice(0, 7); // current month
@@ -1139,7 +1214,6 @@
                 });
 
                 let present = 0, absent = 0, totalSalary = 0;
-
                 for (let day = 1; day <= daysInMonth; day++) {
                     let dd = String(day).padStart(2, '0');
                     let mm = String(month).padStart(2, '0');
@@ -1155,31 +1229,80 @@
 
                 // Salary color + emoji logic
                 let salaryColor = "green";
-                let emoji = "😊"; // default smile
+                let emoji = "😊";
                 if (totalSalary < 25000) {
                     salaryColor = "red";
-                    emoji = "😢"; // sad
+                    emoji = "😢";
                 } else if (totalSalary >= 25000 && totalSalary <= 30000) {
                     salaryColor = "orange";
-                    emoji = "🙂"; // happy
+                    emoji = "🙂";
                 } else {
                     salaryColor = "green";
-                    emoji = "😃"; // big smile
+                    emoji = "😃";
                 }
 
                 // Update DOM
                 document.getElementById("present-days").textContent = `Present Days: ${present}`;
                 document.getElementById("absent-days").textContent = `Absent Days: ${absent}`;
-                document.getElementById("total-salary").innerHTML = `Total Salary: <span style="color:${salaryColor};">${totalSalary.toFixed(2)}</span>`;
+                document.getElementById("total-salary").innerHTML =
+                    `Total Salary: <span style="color:${salaryColor};">${totalSalary.toFixed(2)}</span>`;
                 document.getElementById("salary-emoji").textContent = emoji;
 
-                // ✅ Chart.js Graph
-                console.log("📊 Drawing chart...", present, absent);
+                // ✅ Target logic with diamonds
+                let monthlyTarget = parseFloat(localStorage.getItem("monthlyTarget")) || 30000;
+                let percentage = Math.min((totalSalary / monthlyTarget) * 100, 100);
+
+                let glassFill = document.getElementById("glass-fill");
+                let targetText = document.getElementById("target-text");
+
+                if (glassFill && targetText) {
+                    glassFill.style.height = percentage + "%";
+
+                    // diamonds ની સંખ્યા વધારે રાખો (small size હોવાથી)
+                    let maxDiamonds = 700;
+                    let diamondCount = Math.floor((percentage / 100) * maxDiamonds);
+
+                    // clear old
+                    glassFill.innerHTML = "";
+
+                    let tubeWidth = glassFill.clientWidth;
+                    let tubeHeight = glassFill.clientHeight;
+
+                    for (let i = 0; i < diamondCount; i++) {
+                        let d = document.createElement("span");
+                        d.classList.add("diamond");
+                        d.textContent = "💎";
+
+                        // random position inside tube
+                        let left = Math.random() * (tubeWidth - 10);  // 10px padding
+                        let bottom = Math.random() * (tubeHeight - 10);
+
+                        d.style.left = left + "px";
+                        d.style.bottom = bottom + "px";
+
+                        glassFill.appendChild(d);
+                    }
+
+                    targetText.textContent = `${totalSalary.toFixed(2)} / ${monthlyTarget} ₹`;
+
+                    if (percentage >= 100) {
+                        targetText.textContent = `🎉 Target Completed! ${totalSalary.toFixed(2)} ₹`;
+                    }
+                }
+
+
+
+
+                // ✅ Chart.js Graph (safe destroy)
                 let ctx = document.getElementById('attendanceChart').getContext('2d');
                 if (!ctx) {
                     console.error("⚠️ attendanceChart canvas not found!");
                     return;
                 }
+                if (window.attendanceChart && typeof window.attendanceChart.destroy === "function") {
+                    window.attendanceChart.destroy();
+                }
+
                 window.attendanceChart = new Chart(ctx, {
                     type: 'doughnut',
                     data: {
@@ -1196,25 +1319,20 @@
                             legend: {
                                 position: 'bottom',
                                 labels: {
-                                    color: '#ffffff',   // 👈 White label text
-                                    font: {
-                                        size: 14,
-                                        weight: 'bold'
-                                    }
+                                    color: '#ffffff',
+                                    font: { size: 14, weight: 'bold' }
                                 },
-                                // 👇 legend પર click disable
                                 onClick: (e) => e.stopPropagation()
                             }
                         }
                     }
-
-
                 });
 
             } catch (err) {
                 console.error("❌ Error loading dashboard summary:", err);
             }
         }
+
 
 
 
