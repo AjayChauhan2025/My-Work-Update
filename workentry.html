@@ -355,6 +355,7 @@
                 transform: scale(1.1) rotate(15deg);
             }
         }
+
        
 
 
@@ -372,17 +373,17 @@
             <h2>Dashboard</h2>
             <div id="dashboard-summary"
                  style="margin-top:5px; font-size:16px; font-weight:bold;
-display:flex; justify-content:center; align-items:flex-start; flex-wrap:wrap; gap:10px;">
+display:flex; justify-content:flex-start; align-items:flex-start; flex-wrap:wrap; gap:20px;">
 
                 <!-- Left Side: Summary + Chart -->
-                <div style="flex:0 0 200px; min-width:180px; text-align:left; color:white;">
-                    <p id="present-days" style="margin:2px 0;">Present Days: 0</p>
-                    <p id="absent-days" style="margin:2px 0;">Absent Days: 0</p>
-                    <p id="total-salary" style="margin:2px 0;">Total Salary: 0</p>
-                    <p id="salary-emoji" style="font-size:40px; margin:5px 0;"></p>
+                <div style="flex:0 0 200px; min-width:180px; color:white;">
+                    <p id="present-days" style="margin:2px 0; text-align:left;">Present Days: 0</p>
+                    <p id="absent-days" style="margin:2px 0; text-align:left;">Absent Days: 0</p>
+                    <p id="total-salary" style="margin:2px 0; text-align:left;">Total Salary: 0</p>
+                    <p id="salary-emoji" style="font-size:40px; margin:5px 0; text-align:left;"></p>
 
                     <!-- Doughnut Chart aligned left -->
-                    <div style="width:160px; height:160px; margin:5px 0;">
+                    <div style="width:160px; height:160px; margin:5px 0 5px 0; text-align:left;">
                         <canvas id="attendanceChart"></canvas>
                     </div>
                 </div>
