@@ -355,6 +355,19 @@
                 transform: scale(1.1) rotate(15deg);
             }
         }
+        /* Mobile responsive: screen <= 480px */
+        @media screen and (max-width: 480px) {
+            #dashboard-summary {
+                flex-direction: column;
+                align-items: center;
+            }
+
+                #dashboard-summary > div {
+                    flex: 0 0 auto;
+                    width: 90%;
+                    margin-bottom: 10px;
+                }
+        }
 
 
         
@@ -371,23 +384,23 @@
             <h2>Dashboard</h2>
             <div id="dashboard-summary"
                  style="margin-top:5px; font-size:16px; font-weight:bold;
-            display:flex; justify-content:space-around; align-items:flex-start; flex-wrap:wrap; gap:10px;">
+display:flex; justify-content:center; align-items:flex-start; flex-wrap:wrap; gap:10px;">
 
-                <!-- 📊 Left Side: Summary + Chart -->
-                <div style="flex:1; min-width:180px; text-align:center; color:white;">
+                <!-- Left Side: Summary + Chart -->
+                <div style="flex:0 0 200px; min-width:180px; text-align:left; color:white;">
                     <p id="present-days" style="margin:2px 0;">Present Days: 0</p>
                     <p id="absent-days" style="margin:2px 0;">Absent Days: 0</p>
                     <p id="total-salary" style="margin:2px 0;">Total Salary: 0</p>
                     <p id="salary-emoji" style="font-size:40px; margin:5px 0;"></p>
 
-                    <!-- Doughnut Chart -->
-                    <div style="width:160px; height:160px; margin:5px auto;">
+                    <!-- Doughnut Chart aligned left -->
+                    <div style="width:160px; height:160px; margin:5px 0;">
                         <canvas id="attendanceChart"></canvas>
                     </div>
                 </div>
 
                 <!-- 💎 Right Side: Target Glass -->
-                <div style="flex:1; min-width:160px; text-align:center;">
+                <div style="flex:0 0 180px; min-width:160px; text-align:center;">
                     <h3 style="color:white; font-size:16px;">🎯 Monthly Target</h3>
 
                     <!-- Target Input -->
@@ -399,19 +412,17 @@
                     </button>
 
                     <!-- Glass Tube -->
-                    <div style="position:relative; width:80px; height:200px; margin:10px auto;
-            border:2px solid #075e54; border-radius:40px; overflow:hidden; background:#f0f0f0;">
+                    <div style="position:relative; width:80px; height:200px; margin:5px auto;
+border:2px solid #075e54; border-radius:40px; overflow:hidden; background:#f0f0f0;">
                         <div id="glass-fill"
                              style="position:absolute; bottom:0; left:0; width:100%; height:0%;
-                display:flex; flex-wrap:wrap; align-content:flex-start; gap:2px; padding:2px; overflow:hidden;">
+    display:flex; flex-wrap:wrap; align-content:flex-start; gap:2px; padding:2px; overflow:hidden;">
                             <!-- Diamonds dynamically add thase -->
                         </div>
                     </div>
                     <p id="target-text" style="margin-top:5px; font-weight:bold; color:white; font-size:14px;">
                         0 / 0 ₹
                     </p>
-
-
                 </div>
             </div>
 
@@ -1174,10 +1185,17 @@
        
 
         // ✅ User-defined target setter
+        // 🎯 User target set function
         function setTarget() {
+            let loggedUser = JSON.parse(localStorage.getItem('loggedUser') || '{}');
+            let userName = loggedUser.username || loggedUser.fullname || loggedUser.fullName;
+
+            if (!userName) return;
+
             let val = parseFloat(document.getElementById("user-target").value) || 0;
             if (val > 0) {
-                localStorage.setItem("monthlyTarget", val);
+                // user-specific target save
+                localStorage.setItem("target_" + userName, val);
                 loadDashboardSummary(); // refresh view
             }
         }
@@ -1187,7 +1205,7 @@
             let userName = loggedUser.fullname || loggedUser.fullName || loggedUser.username;
             if (!userName) return;
 
-            let monthFilter = new Date().toISOString().slice(0, 7); // current month
+            let monthFilter = new Date().toISOString().slice(0, 7);
             let entries = [];
 
             try {
@@ -1248,8 +1266,8 @@
                     `Total Salary: <span style="color:${salaryColor};">${totalSalary.toFixed(2)}</span>`;
                 document.getElementById("salary-emoji").textContent = emoji;
 
-                // ✅ Target logic with diamonds
-                let monthlyTarget = parseFloat(localStorage.getItem("monthlyTarget")) || 30000;
+                // ✅ User-specific Target logic with diamonds
+                let monthlyTarget = parseFloat(localStorage.getItem("target_" + userName)) || 30000;
                 let percentage = Math.min((totalSalary / monthlyTarget) * 100, 100);
 
                 let glassFill = document.getElementById("glass-fill");
@@ -1258,11 +1276,9 @@
                 if (glassFill && targetText) {
                     glassFill.style.height = percentage + "%";
 
-                    // diamonds ની સંખ્યા વધારે રાખો (small size હોવાથી)
                     let maxDiamonds = 700;
                     let diamondCount = Math.floor((percentage / 100) * maxDiamonds);
 
-                    // clear old
                     glassFill.innerHTML = "";
 
                     let tubeWidth = glassFill.clientWidth;
@@ -1273,25 +1289,18 @@
                         d.classList.add("diamond");
                         d.textContent = "💎";
 
-                        // random position inside tube
-                        let left = Math.random() * (tubeWidth - 10);  // 10px padding
-                        let bottom = Math.random() * (tubeHeight - 10);
-
-                        d.style.left = left + "px";
-                        d.style.bottom = bottom + "px";
+                        d.style.position = "absolute";
+                        d.style.left = (Math.random() * (tubeWidth - 10)) + "px";
+                        d.style.bottom = (Math.random() * (tubeHeight - 10)) + "px";
 
                         glassFill.appendChild(d);
                     }
 
                     targetText.textContent = `${totalSalary.toFixed(2)} / ${monthlyTarget} ₹`;
-
                     if (percentage >= 100) {
                         targetText.textContent = `🎉 Target Completed! ${totalSalary.toFixed(2)} ₹`;
                     }
                 }
-
-
-
 
                 // ✅ Chart.js Graph (safe destroy)
                 let ctx = document.getElementById('attendanceChart').getContext('2d');
@@ -1332,6 +1341,7 @@
                 console.error("❌ Error loading dashboard summary:", err);
             }
         }
+
 
 
 
